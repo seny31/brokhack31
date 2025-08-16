@@ -7,29 +7,33 @@ local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local rootPart = character:WaitForChild("HumanoidRootPart")
 
--- GUI oluştur
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "HackMenu"
-screenGui.Parent = game.CoreGui
+-- Toggle durumları
+local flyActive = false
+local noclipActive = false
+local bodyVelocity
+
+-- GUI oluşturma
+local screenGui = Instance.new("ScreenGui", game.CoreGui)
+screenGui.Name = "SimpleHackMenu"
 
 local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0.25, 0, 0.25, 0)
-frame.Position = UDim2.new(0.1, 0, 0.1, 0)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.Size = UDim2.new(0, 350, 0, 200)
+frame.Position = UDim2.new(0.05, 0, 0.3, 0)
+frame.BackgroundColor3 = Color3.fromRGB(35,35,35)
 frame.BorderSizePixel = 0
 
 local titleBar = Instance.new("Frame", frame)
 titleBar.Size = UDim2.new(1, 0, 0, 30)
-titleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+titleBar.BackgroundColor3 = Color3.fromRGB(20,20,20)
 
 local title = Instance.new("TextLabel", titleBar)
 title.Text = "Hack Menu"
-title.TextColor3 = Color3.new(1,1,1)
-title.BackgroundTransparency = 1
 title.Size = UDim2.new(1, -60, 1, 0)
 title.Position = UDim2.new(0, 10, 0, 0)
+title.TextColor3 = Color3.new(1,1,1)
+title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
-title.TextSize = 20
+title.TextSize = 22
 title.TextXAlignment = Enum.TextXAlignment.Left
 
 local closeBtn = Instance.new("TextButton", titleBar)
@@ -58,7 +62,7 @@ content.BackgroundTransparency = 1
 -- Checkbox fonksiyonu
 local function createOption(text, parent, y)
     local container = Instance.new("Frame", parent)
-    container.Size = UDim2.new(1, -20, 0, 30)
+    container.Size = UDim2.new(1, -20, 0, 40)
     container.Position = UDim2.new(0, 10, 0, y)
     container.BackgroundTransparency = 1
 
@@ -68,12 +72,12 @@ local function createOption(text, parent, y)
     label.BackgroundTransparency = 1
     label.TextColor3 = Color3.new(1,1,1)
     label.Font = Enum.Font.Gotham
-    label.TextSize = 18
+    label.TextSize = 20
     label.TextXAlignment = Enum.TextXAlignment.Left
 
     local checkbox = Instance.new("TextButton", container)
-    checkbox.Size = UDim2.new(0, 25, 0, 25)
-    checkbox.Position = UDim2.new(1, -25, 0, 2)
+    checkbox.Size = UDim2.new(0, 30, 0, 30)
+    checkbox.Position = UDim2.new(1, -35, 0, 5)
     checkbox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     checkbox.BorderSizePixel = 0
     checkbox.Text = ""
@@ -84,16 +88,16 @@ local function createOption(text, parent, y)
     tick.BackgroundTransparency = 1
     tick.TextColor3 = Color3.fromRGB(100, 255, 100)
     tick.Font = Enum.Font.GothamBold
-    tick.TextSize = 20
+    tick.TextSize = 26
     tick.Visible = false
 
     return checkbox, tick
 end
 
 local flyCheckbox, flyTick = createOption("Fly", content, 0)
-local noclipCheckbox, noclipTick = createOption("Noclip", content, 40)
+local noclipCheckbox, noclipTick = createOption("Noclip", content, 50)
 
--- Sürükleme
+-- Sürükleme mekanizması
 local dragging = false
 local dragInput, dragStart, startPos
 
@@ -129,12 +133,12 @@ UIS.InputChanged:Connect(function(input)
     end
 end)
 
--- Kapatma
+-- Kapatma butonu
 closeBtn.MouseButton1Click:Connect(function()
     screenGui.Enabled = false
 end)
 
--- Küçült/Büyüt
+-- Küçült / büyüt butonu
 local minimized = false
 local originalSize = frame.Size
 local minimizedSize = UDim2.new(0, 120, 0, 30)
@@ -153,15 +157,13 @@ resizeBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Fly mekanizması
-local flyActive = false
-local bodyVelocity
-
+-- Fly fonksiyonları
 local function startFly()
     if bodyVelocity then bodyVelocity:Destroy() end
     bodyVelocity = Instance.new("BodyVelocity", rootPart)
-    bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+    bodyVelocity.MaxForce = Vector3.new(1e5,1e5,1e5)
     bodyVelocity.Velocity = Vector3.new(0,0,0)
+    humanoid.PlatformStand = true
 end
 
 local function stopFly()
@@ -169,43 +171,16 @@ local function stopFly()
         bodyVelocity:Destroy()
         bodyVelocity = nil
     end
+    humanoid.PlatformStand = false
 end
-
-RunService.Heartbeat:Connect(function()
-    if flyActive and bodyVelocity then
-        local direction = Vector3.new()
-        if UIS:IsKeyDown(Enum.KeyCode.W) then
-            direction = direction + workspace.CurrentCamera.CFrame.LookVector
-        end
-        if UIS:IsKeyDown(Enum.KeyCode.S) then
-            direction = direction - workspace.CurrentCamera.CFrame.LookVector
-        end
-        if UIS:IsKeyDown(Enum.KeyCode.A) then
-            direction = direction - workspace.CurrentCamera.CFrame.RightVector
-        end
-        if UIS:IsKeyDown(Enum.KeyCode.D) then
-            direction = direction + workspace.CurrentCamera.CFrame.RightVector
-        end
-
-        direction = Vector3.new(direction.X, 0, direction.Z)
-        if direction.Magnitude > 0 then
-            direction = direction.Unit
-            bodyVelocity.Velocity = direction * 100
-        else
-            bodyVelocity.Velocity = Vector3.new(0,0,0)
-        end
-    end
-end)
 
 local function toggleFly(state)
     flyActive = state
     flyTick.Visible = state
     if state then
         startFly()
-        humanoid.PlatformStand = true
     else
         stopFly()
-        humanoid.PlatformStand = false
     end
 end
 
@@ -213,9 +188,7 @@ flyCheckbox.MouseButton1Click:Connect(function()
     toggleFly(not flyActive)
 end)
 
--- Noclip mekanizması
-local noclipActive = false
-
+-- Noclip fonksiyonları
 local function noclipOn()
     for _, part in pairs(character:GetDescendants()) do
         if part:IsA("BasePart") then
@@ -235,13 +208,42 @@ end
 local function toggleNoclip(state)
     noclipActive = state
     noclipTick.Visible = state
-    if state then
-        noclipOn()
-    else
-        noclipOff()
-    end
 end
 
 noclipCheckbox.MouseButton1Click:Connect(function()
     toggleNoclip(not noclipActive)
+end)
+
+-- RunService ile sürekli kontrol
+RunService.Heartbeat:Connect(function()
+    -- Fly hareketi
+    if flyActive and bodyVelocity then
+        local dir = Vector3.new()
+        if UIS:IsKeyDown(Enum.KeyCode.W) then
+            dir = dir + workspace.CurrentCamera.CFrame.LookVector
+        end
+        if UIS:IsKeyDown(Enum.KeyCode.S) then
+            dir = dir - workspace.CurrentCamera.CFrame.LookVector
+        end
+        if UIS:IsKeyDown(Enum.KeyCode.A) then
+            dir = dir - workspace.CurrentCamera.CFrame.RightVector
+        end
+        if UIS:IsKeyDown(Enum.KeyCode.D) then
+            dir = dir + workspace.CurrentCamera.CFrame.RightVector
+        end
+        dir = Vector3.new(dir.X, 0, dir.Z)
+        if dir.Magnitude > 0 then
+            dir = dir.Unit
+            bodyVelocity.Velocity = dir * 100
+        else
+            bodyVelocity.Velocity = Vector3.new(0,0,0)
+        end
+    end
+
+    -- Noclip kontrolü
+    if noclipActive then
+        noclipOn()
+    else
+        noclipOff()
+    end
 end)
