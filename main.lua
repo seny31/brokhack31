@@ -4,10 +4,11 @@ local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
+local mouse = player:GetMouse()
+
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local rootPart = character:WaitForChild("HumanoidRootPart")
-local mouse = player:GetMouse()
 
 -- Variables
 local flyActive = false
@@ -15,28 +16,26 @@ local noclipActive = false
 local bodyVelocity, bodyGyro
 
 local moveVector = Vector3.new(0,0,0)
-local speed = 75
+local speed = 100
 
 -- UI Setup
 local ScreenGui = Instance.new("ScreenGui", player.PlayerGui)
-ScreenGui.Name = "SimpleFlyNoclipMenu"
+ScreenGui.Name = "FlyNoclipMenu"
 
 local mainFrame = Instance.new("Frame", ScreenGui)
 mainFrame.Size = UDim2.new(0, 400, 0, 250)
 mainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BorderSizePixel = 0
-mainFrame.AnchorPoint = Vector2.new(0,0)
 mainFrame.Active = true
 mainFrame.Draggable = true
-mainFrame.ClipsDescendants = true
 
 local UIStroke = Instance.new("UIStroke", mainFrame)
 UIStroke.Thickness = 2
 UIStroke.Color = Color3.fromRGB(0, 170, 255)
 UIStroke.Transparency = 0.3
 
--- Shadow Effect
+-- Shadow
 local shadow = Instance.new("Frame", mainFrame)
 shadow.Size = UDim2.new(1, 8, 1, 8)
 shadow.Position = UDim2.new(0, -4, 0, -4)
@@ -44,7 +43,6 @@ shadow.BackgroundColor3 = Color3.new(0, 0, 0)
 shadow.BackgroundTransparency = 0.7
 shadow.ZIndex = 0
 shadow.BorderSizePixel = 0
-shadow.ClipsDescendants = false
 
 -- Title
 local title = Instance.new("TextLabel", mainFrame)
@@ -57,7 +55,7 @@ title.TextSize = 28
 title.TextStrokeTransparency = 0.7
 title.Position = UDim2.new(0,0,0,0)
 
--- Close button (X)
+-- Close Button (X)
 local closeBtn = Instance.new("TextButton", mainFrame)
 closeBtn.Size = UDim2.new(0, 30, 0, 30)
 closeBtn.Position = UDim2.new(1, -35, 0, 5)
@@ -67,7 +65,6 @@ closeBtn.Font = Enum.Font.GothamBold
 closeBtn.TextSize = 24
 closeBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 closeBtn.BorderSizePixel = 0
-closeBtn.AutoButtonColor = true
 
 closeBtn.MouseButton1Click:Connect(function()
     ScreenGui.Enabled = false
@@ -75,7 +72,7 @@ closeBtn.MouseButton1Click:Connect(function()
     stopNoclip()
 end)
 
--- Minimize/Maximize button (+)
+-- Minimize/Maximize Button (+)
 local minMaxBtn = Instance.new("TextButton", mainFrame)
 minMaxBtn.Size = UDim2.new(0, 30, 0, 30)
 minMaxBtn.Position = UDim2.new(1, -70, 0, 5)
@@ -85,7 +82,6 @@ minMaxBtn.Font = Enum.Font.GothamBold
 minMaxBtn.TextSize = 28
 minMaxBtn.TextColor3 = Color3.fromRGB(0, 170, 255)
 minMaxBtn.BorderSizePixel = 0
-minMaxBtn.AutoButtonColor = true
 
 local minimized = false
 minMaxBtn.MouseButton1Click:Connect(function()
@@ -154,7 +150,7 @@ local function createCheckbox(parent, text, pos)
     return box
 end
 
--- Fly Functions
+-- Fly functions (Private Server style)
 function startFly()
     if flyActive then return end
     flyActive = true
@@ -167,8 +163,9 @@ function startFly()
     bodyVelocity.Velocity = Vector3.new(0,0,0)
 
     bodyGyro = Instance.new("BodyGyro", rootPart)
-    bodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-    bodyGyro.P = 1e4
+    bodyGyro.MaxTorque = Vector3.new(4e4,4e4,4e4)
+    bodyGyro.P = 2000
+    bodyGyro.D = 1000
 end
 
 function stopFly()
@@ -179,7 +176,7 @@ function stopFly()
     humanoid.PlatformStand = false
 end
 
--- Noclip Functions
+-- Noclip
 local noclipConn
 function startNoclip()
     if noclipActive then return end
@@ -207,7 +204,7 @@ function stopNoclip()
     end
 end
 
--- Sağ tıkla yön değiştir
+-- Sağ tıkla yön değiştirme
 mouse.Button2Down:Connect(function()
     if not flyActive then return end
     local mousePos = mouse.Hit.p
@@ -218,7 +215,7 @@ mouse.Button2Down:Connect(function()
     end
 end)
 
--- WASD hareketi
+-- WASD hareket
 UIS.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Enum.KeyCode.W then
@@ -244,7 +241,7 @@ UIS.InputEnded:Connect(function(input)
     end
 end)
 
--- Hareketi güncelle
+-- Hareket güncelleme
 RunService.Heartbeat:Connect(function()
     if flyActive and bodyVelocity and bodyGyro then
         humanoid.PlatformStand = true
@@ -257,12 +254,4 @@ RunService.Heartbeat:Connect(function()
             direction = direction.Unit
         end
 
-        bodyVelocity.Velocity = direction * speed
-    else
-        humanoid.PlatformStand = false
-    end
-end)
-
--- Menü içi tik kutucukları oluştur
-local flyCheckbox = createCheckbox(mainFrame, "Fly", UDim2.new(0, 20, 0, 60))
-local noclipCheckbox = createCheckbox(mainFrame, "Noclip", UDim2.new(0, 20, 0, 110))
+       
