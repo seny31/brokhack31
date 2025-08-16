@@ -1,3 +1,4 @@
+-- Arda için tam özellikli hile menüsü
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
@@ -69,7 +70,14 @@ local toggles = {
 local flySpeed = 50
 local bodyGyro, bodyVelocity
 
--- FLY
+-- FLY sistemi
+RunService.RenderStepped:Connect(function()
+	if toggles.FLY and character:FindFirstChild("HumanoidRootPart") then
+		bodyGyro.CFrame = workspace.CurrentCamera.CFrame
+		bodyVelocity.Velocity = workspace.CurrentCamera.CFrame.LookVector * flySpeed
+	end
+end)
+
 local function enableFly()
 	if not character:FindFirstChild("HumanoidRootPart") then return end
 	character.Humanoid.PlatformStand = true
@@ -79,7 +87,7 @@ local function enableFly()
 	bodyGyro.CFrame = character.HumanoidRootPart.CFrame
 
 	bodyVelocity = Instance.new("BodyVelocity", character.HumanoidRootPart)
-	bodyVelocity.Velocity = Vector3.new(0, flySpeed, 0)
+	bodyVelocity.Velocity = Vector3.new(0, 0, 0)
 	bodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
 end
 
@@ -91,16 +99,16 @@ end
 
 -- NOCLIP
 RunService.Stepped:Connect(function()
-	if toggles.NOCLIP and character then
+	if character then
 		for _, part in pairs(character:GetDescendants()) do
 			if part:IsA("BasePart") then
-				part.CanCollide = false
+				part.CanCollide = not toggles.NOCLIP
 			end
 		end
 	end
 end)
 
--- ESP
+-- ESP sistemi
 local function toggleESP(state)
 	for _, plr in pairs(Players:GetPlayers()) do
 		if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") then
@@ -127,7 +135,7 @@ local function toggleESP(state)
 				label.TextSize = 14
 
 				RunService.RenderStepped:Connect(function()
-					if plr.Character and plr.Character:FindFirstChild("Head") then
+					if plr.Character and plr.Character:FindFirstChild("Head") and character:FindFirstChild("Head") then
 						local dist = (plr.Character.Head.Position - character.Head.Position).Magnitude
 						label.Text = plr.Name .. " | Mesafe: " .. math.floor(dist)
 					end
@@ -145,9 +153,8 @@ end
 local function updateHack(name, state)
 	toggles[name] = state
 	if name == "FLY" then state and enableFly() or disableFly()
-	elseif name == "NOCLIP" then -- handled in Stepped
 	elseif name == "ESP" then toggleESP(state)
-	elseif name == "NO GRA." then game.Workspace.Gravity = state and 0 or 196.2
+	elseif name == "NO GRA." then workspace.Gravity = state and 0 or 196.2
 	end
 end
 
@@ -182,4 +189,12 @@ end
 createOption("FLY", 10)
 createOption("ESP", 50)
 createOption("NO GRA.", 90)
-createOption("NO
+createOption("NOCLIP", 130)
+
+-- Sliderlar
+local function createSlider(name, y)
+	local label = Instance.new("TextLabel", content)
+	label.Size = UDim2.new(0, 100, 0, 30)
+	label.Position = UDim2.new(0, 10, 0, y)
+	label.BackgroundTransparency = 1
+	label.TextColor3 = Color3.fromRGB(255
