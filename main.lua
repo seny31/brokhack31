@@ -1,194 +1,123 @@
--- Basit Fly ve Noclip Menü Scripti
-
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UIS = game:GetService("UserInputService")
-
-local player = Players.LocalPlayer
-local mouse = player:GetMouse()
-
+local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
-local rootPart = character:WaitForChild("HumanoidRootPart")
+local root = character:WaitForChild("HumanoidRootPart")
 
-local flyActive = false
-local noclipActive = false
-local bodyVelocity, bodyGyro
+local flying = false
+local speed = 50
 
-local moveVector = Vector3.new()
-local speed = 100
+local bv
+local bg
 
--- UI
-local ScreenGui = Instance.new("ScreenGui", player.PlayerGui)
-ScreenGui.Name = "FlyNoclipMenu"
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
-local frame = Instance.new("Frame", ScreenGui)
-frame.Size = UDim2.new(0, 300, 0, 200)
-frame.Position = UDim2.new(0.3, 0, 0.3, 0)
-frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+-- Fly fonksiyonu (değişmedi)
+local function startFly()
+    if flying then return end
+    flying = true
+    bv = Instance.new("BodyVelocity", root)
+    bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+    bv.Velocity = Vector3.new(0,0,0)
+
+    bg = Instance.new("BodyGyro", root)
+    bg.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+    bg.CFrame = root.CFrame
+
+    humanoid.PlatformStand = true
+end
+
+local function stopFly()
+    if not flying then return end
+    flying = false
+    if bv then bv:Destroy() end
+    if bg then bg:Destroy() end
+    humanoid.PlatformStand = false
+end
+
+-- Hareket güncelleme (değişmedi)
+RunService.Heartbeat:Connect(function()
+    if flying then
+        local moveDir = Vector3.new()
+        if UIS:IsKeyDown(Enum.KeyCode.W) then
+            moveDir = moveDir + workspace.CurrentCamera.CFrame.LookVector
+        end
+        if UIS:IsKeyDown(Enum.KeyCode.S) then
+            moveDir = moveDir - workspace.CurrentCamera.CFrame.LookVector
+        end
+        if UIS:IsKeyDown(Enum.KeyCode.A) then
+            moveDir = moveDir - workspace.CurrentCamera.CFrame.RightVector
+        end
+        if UIS:IsKeyDown(Enum.KeyCode.D) then
+            moveDir = moveDir + workspace.CurrentCamera.CFrame.RightVector
+        end
+
+        if moveDir.Magnitude > 0 then
+            moveDir = moveDir.Unit * speed
+        end
+
+        if bv then
+            bv.Velocity = moveDir
+        end
+        if bg then
+            bg.CFrame = workspace.CurrentCamera.CFrame
+        end
+    end
+end)
+
+-- Menü oluşturma
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FlyMenu"
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 80)
+frame.Position = UDim2.new(0, 20, 0, 20)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.BorderSizePixel = 0
+frame.Parent = ScreenGui
 frame.Active = true
 frame.Draggable = true
 
-local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1, 0, 0, 30)
-title.BackgroundTransparency = 1
-title.Text = "Fly & Noclip Menu"
-title.TextColor3 = Color3.fromRGB(0,170,255)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 24
+local label = Instance.new("TextLabel")
+label.Size = UDim2.new(0, 150, 0, 40)
+label.Position = UDim2.new(0, 40, 0, 20)
+label.BackgroundTransparency = 1
+label.Text = "Fly"
+label.TextColor3 = Color3.fromRGB(200, 200, 200)
+label.Font = Enum.Font.GothamBold
+label.TextSize = 28
+label.TextXAlignment = Enum.TextXAlignment.Left
+label.Parent = frame
 
-local flyCheckbox = Instance.new("TextButton", frame)
-flyCheckbox.Size = UDim2.new(0, 30, 0, 30)
-flyCheckbox.Position = UDim2.new(0, 10, 0, 50)
-flyCheckbox.BackgroundColor3 = Color3.fromRGB(30,30,30)
-flyCheckbox.Text = ""
-local flyChecked = false
+local checkbox = Instance.new("TextButton")
+checkbox.Size = UDim2.new(0, 30, 0, 30)
+checkbox.Position = UDim2.new(0, 5, 0, 20)
+checkbox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+checkbox.Text = ""
+checkbox.TextColor3 = Color3.new(0,0,0)
+checkbox.Font = Enum.Font.SourceSansBold
+checkbox.TextSize = 24
+checkbox.Parent = frame
 
-local flyLabel = Instance.new("TextLabel", frame)
-flyLabel.Size = UDim2.new(0, 100, 0, 30)
-flyLabel.Position = UDim2.new(0, 50, 0, 50)
-flyLabel.Text = "Fly"
-flyLabel.TextColor3 = Color3.fromRGB(200,200,200)
-flyLabel.BackgroundTransparency = 1
-flyLabel.Font = Enum.Font.Gotham
-flyLabel.TextSize = 22
-flyLabel.TextXAlignment = Enum.TextXAlignment.Left
-
-local noclipCheckbox = Instance.new("TextButton", frame)
-noclipCheckbox.Size = UDim2.new(0, 30, 0, 30)
-noclipCheckbox.Position = UDim2.new(0, 10, 0, 90)
-noclipCheckbox.BackgroundColor3 = Color3.fromRGB(30,30,30)
-noclipCheckbox.Text = ""
-local noclipChecked = false
-
-local noclipLabel = Instance.new("TextLabel", frame)
-noclipLabel.Size = UDim2.new(0, 100, 0, 30)
-noclipLabel.Position = UDim2.new(0, 50, 0, 90)
-noclipLabel.Text = "Noclip"
-noclipLabel.TextColor3 = Color3.fromRGB(200,200,200)
-noclipLabel.BackgroundTransparency = 1
-noclipLabel.Font = Enum.Font.Gotham
-noclipLabel.TextSize = 22
-noclipLabel.TextXAlignment = Enum.TextXAlignment.Left
-
-local function toggleFly()
-    flyChecked = not flyChecked
-    flyCheckbox.Text = flyChecked and "✔" or ""
-    if flyChecked then
-        startFly()
+local function updateCheckbox()
+    if flying then
+        checkbox.Text = "✔"
+        checkbox.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
     else
+        checkbox.Text = ""
+        checkbox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    end
+end
+
+checkbox.MouseButton1Click:Connect(function()
+    if flying then
         stopFly()
-    end
-end
-
-local function toggleNoclip()
-    noclipChecked = not noclipChecked
-    noclipCheckbox.Text = noclipChecked and "✔" or ""
-    if noclipChecked then
-        startNoclip()
     else
-        stopNoclip()
+        startFly()
     end
-end
-
-flyCheckbox.MouseButton1Click:Connect(toggleFly)
-flyLabel.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then toggleFly() end end)
-
-noclipCheckbox.MouseButton1Click:Connect(toggleNoclip)
-noclipLabel.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then toggleNoclip() end end)
-
--- Fly Fonksiyonları
-function startFly()
-    if flyActive then return end
-    flyActive = true
-
-    if bodyVelocity then bodyVelocity:Destroy() end
-    if bodyGyro then bodyGyro:Destroy() end
-
-    bodyVelocity = Instance.new("BodyVelocity", rootPart)
-    bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-    bodyVelocity.Velocity = Vector3.new()
-
-    bodyGyro = Instance.new("BodyGyro", rootPart)
-    bodyGyro.MaxTorque = Vector3.new(4e4, 4e4, 4e4)
-    bodyGyro.P = 10000
-    bodyGyro.D = 1000
-end
-
-function stopFly()
-    flyActive = false
-    if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
-    if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
-    humanoid.PlatformStand = false
-    moveVector = Vector3.new()
-end
-
--- Noclip Fonksiyonları
-local noclipConnection
-function startNoclip()
-    if noclipActive then return end
-    noclipActive = true
-
-    noclipConnection = RunService.Stepped:Connect(function()
-        for _, part in pairs(character:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide then
-                part.CanCollide = false
-            end
-        end
-    end)
-end
-
-function stopNoclip()
-    noclipActive = false
-    if noclipConnection then
-        noclipConnection:Disconnect()
-        noclipConnection = nil
-    end
-    for _, part in pairs(character:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = true
-        end
-    end
-end
-
--- Sağ tıkla yön değiştirme
-mouse.Button2Down:Connect(function()
-    if not flyActive then return end
-    local mousePos = mouse.Hit.p
-    local rootPos = rootPart.Position
-    local lookVector = (Vector3.new(mousePos.X, rootPos.Y, mousePos.Z) - rootPos).Unit
-    if bodyGyro then
-        bodyGyro.CFrame = CFrame.new(rootPos, rootPos + lookVector)
-    end
+    updateCheckbox()
 end)
 
--- WASD Hareketi
-UIS.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.W then
-        moveVector = moveVector + Vector3.new(0, 0, -1)
-    elseif input.KeyCode == Enum.KeyCode.S then
-        moveVector = moveVector + Vector3.new(0, 0, 1)
-    elseif input.KeyCode == Enum.KeyCode.A then
-        moveVector = moveVector + Vector3.new(-1, 0, 0)
-    elseif input.KeyCode == Enum.KeyCode.D then
-        moveVector = moveVector + Vector3.new(1, 0, 0)
-    end
-end)
-
-UIS.InputEnded:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.W then
-        moveVector = moveVector - Vector3.new(0, 0, -1)
-    elseif input.KeyCode == Enum.KeyCode.S then
-        moveVector = moveVector - Vector3.new(0, 0, 1)
-    elseif input.KeyCode == Enum.KeyCode.A then
-        moveVector = moveVector - Vector3.new(-1, 0, 0)
-    elseif input.KeyCode == Enum.KeyCode.D then
-        moveVector = moveVector - Vector3.new(1, 0, 0)
-    end
-end)
-
--- Hareket Güncelleme
-RunService.Heartbeat:Connect(function()
-    if flyActive and bodyVelocity and bodyGyro then
-        humanoid.PlatformStand
+updateCheckbox()
