@@ -1,183 +1,156 @@
-local player = game.Players.LocalPlayer
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
 local mouse = player:GetMouse()
-local UIS = game:GetService("UserInputService")
-local RS = game:GetService("RunService")
-local TS = game:GetService("TweenService")
 
--- Blur
-local blur = Instance.new("BlurEffect", game.Lighting)
-blur.Size = 10
-
--- GUI
 local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "ArdaGUI"
+gui.Name = "CustomMenu"
 
--- Frame
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 0, 0, 0)
-frame.Position = UDim2.new(0.5, -150, 0.5, -150)
-frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-frame.BorderSizePixel = 0
-local corner = Instance.new("UICorner", frame)
-corner.CornerRadius = UDim.new(0, 12)
-TS:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Back), {
-    Size = UDim2.new(0, 300, 0, 500)
-}):Play()
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0, 600, 0, 300)
+main.Position = UDim2.new(0.5, -300, 0.5, -150)
+main.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+main.BorderSizePixel = 4
+main.BorderColor3 = Color3.fromRGB(255, 255, 255)
 
--- Drag
-local dragging = false
-local dragOffset
-frame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragOffset = input.Position - frame.AbsolutePosition
-    end
-end)
-frame.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
-    end
-end)
-UIS.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        frame.Position = UDim2.new(0, input.Position.X - dragOffset.X, 0, input.Position.Y - dragOffset.Y)
-    end
-end)
+-- Kenar yumuşatma
+local mainCorner = Instance.new("UICorner", main)
+mainCorner.CornerRadius = UDim.new(0, 8)
 
--- Button Creator
-local function createButton(text, yPos, callback)
-    local btn = Instance.new("TextButton", frame)
-    btn.Size = UDim2.new(0, 260, 0, 30)
-    btn.Position = UDim2.new(0, 20, 0, yPos)
-    btn.Text = text
-    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    btn.TextColor3 = Color3.new(1, 1, 1)
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 14
-    local btnCorner = Instance.new("UICorner", btn)
-    btnCorner.CornerRadius = UDim.new(0, 8)
-    btn.MouseButton1Click:Connect(callback)
-    return btn
-end
-
--- Fly
-local speed = 100
-local flying = false
-local bv = nil
-local flyBtn = createButton("Fly Aç/Kapat", 240, function()
-    flying = not flying
-    if flying then
-        bv = Instance.new("BodyVelocity", player.Character.HumanoidRootPart)
-        bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-        RS:BindToRenderStep("Fly", 0, function()
-            bv.Velocity = mouse.Hit.lookVector * speed
-        end)
-    else
-        RS:UnbindFromRenderStep("Fly")
-        if bv then bv:Destroy() end
-    end
-    flyBtn.BackgroundColor3 = flying and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(40, 40, 40)
-end)
-
--- Noclip
-local noclip = false
-local noclipBtn = createButton("Noclip Aç/Kapat", 280, function()
-    noclip = not noclip
-    noclipBtn.BackgroundColor3 = noclip and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(40, 40, 40)
-end)
-RS.Stepped:Connect(function()
-    if noclip and player.Character then
-        for _, part in pairs(player.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-            end
-        end
-    end
-end)
-
--- ESP
-local espActive = false
-local espBtn = createButton("ESP Aç/Kapat", 320, function()
-    espActive = not espActive
-    if espActive then
-        for _, p in pairs(game.Players:GetPlayers()) do
-            if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                local box = Instance.new("BoxHandleAdornment")
-                box.Size = Vector3.new(4, 5, 2)
-                box.Adornee = p.Character.HumanoidRootPart
-                box.AlwaysOnTop = true
-                box.ZIndex = 5
-                box.Color3 = Color3.new(1, 0, 0)
-                box.Transparency = 0.5
-                box.Parent = p.Character
-            end
-        end
-    else
-        for _, p in pairs(game.Players:GetPlayers()) do
-            if p.Character then
-                for _, a in pairs(p.Character:GetChildren()) do
-                    if a:IsA("BoxHandleAdornment") then
-                        a:Destroy()
-                    end
-                end
-            end
-        end
-    end
-    espBtn.BackgroundColor3 = espActive and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(40, 40, 40)
-end)
-
--- Speed & Gravity
-createButton("Speed +", 160, function()
-    speed = math.clamp(speed + 10, 10, 200)
-end)
-createButton("Speed -", 200, function()
-    speed = math.clamp(speed - 10, 10, 200)
-end)
-createButton("Gravity +", 80, function()
-    game.Workspace.Gravity = math.clamp(game.Workspace.Gravity + 25, 0, 500)
-end)
-createButton("Gravity -", 120, function()
-    game.Workspace.Gravity = math.clamp(game.Workspace.Gravity - 25, 0, 500)
-end)
-
--- Tema
-local themes = {
-    ["Koyu"] = Color3.fromRGB(25,25,25),
-    ["Siberpunk"] = Color3.fromRGB(10,10,30),
-    ["Matrix"] = Color3.fromRGB(0,10,0)
-}
-createButton("Tema: Koyu", 360, function() frame.BackgroundColor3 = themes["Koyu"] end)
-createButton("Tema: Siberpunk", 400, function() frame.BackgroundColor3 = themes["Siberpunk"] end)
-createButton("Tema: Matrix", 440, function() frame.BackgroundColor3 = themes["Matrix"] end)
-
--- Kapatma Tuşu
-local closeBtn = Instance.new("TextButton", frame)
+-- Kapatma tuşu
+local closeBtn = Instance.new("TextButton", main)
 closeBtn.Size = UDim2.new(0, 30, 0, 30)
 closeBtn.Position = UDim2.new(1, -35, 0, 5)
-closeBtn.Text = "❌"
-closeBtn.BackgroundColor3 = Color3.fromRGB(60, 0, 0)
-closeBtn.TextColor3 = Color3.new(1, 1, 1)
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 18
-local closeCorner = Instance.new("UICorner", closeBtn)
-closeCorner.CornerRadius = UDim.new(0, 8)
-closeBtn.Parent = frame
+closeBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+closeBtn.Text = "X"
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.Font = Enum.Font.SourceSansBold
+closeBtn.TextSize = 20
+Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
 
 closeBtn.MouseButton1Click:Connect(function()
-    frame.Visible = false
-    blur.Enabled = false
-    flying = false
-    RS:UnbindFromRenderStep("Fly")
-    if bv then bv:Destroy() end
-    noclip = false
-    espActive = false
-    for _, p in pairs(game.Players:GetPlayers()) do
-        if p.Character then
-            for _, a in pairs(p.Character:GetChildren()) do
-                if a:IsA("BoxHandleAdornment") then
-                    a:Destroy()
-                end
-            end
-        end
-    end
+	gui:Destroy()
 end)
+
+-- Sidebar
+local sidebar = Instance.new("Frame", main)
+sidebar.Size = UDim2.new(0, 120, 1, 0)
+sidebar.Position = UDim2.new(0, 0, 0, 0)
+sidebar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, 8)
+
+local function createSidebarButton(name, y)
+	local btn = Instance.new("TextButton", sidebar)
+	btn.Size = UDim2.new(0, 100, 0, 40)
+	btn.Position = UDim2.new(0, 10, 0, y)
+	btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	btn.Font = Enum.Font.SourceSansBold
+	btn.TextSize = 20
+	btn.Text = name
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+	return btn
+end
+
+createSidebarButton("Hacks", 20)
+createSidebarButton("Settings", 80)
+
+-- İçerik alanı
+local content = Instance.new("Frame", main)
+content.Size = UDim2.new(1, -140, 1, -20)
+content.Position = UDim2.new(0, 130, 0, 10)
+content.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Instance.new("UICorner", content).CornerRadius = UDim.new(0, 8)
+
+-- Hile fonksiyonları (örnek)
+local function activateHack(name)
+	print("Hile açıldı: " .. name)
+end
+
+-- Checkbox sistemi
+local function createOption(name, y)
+	local label = Instance.new("TextLabel", content)
+	label.Size = UDim2.new(0, 100, 0, 30)
+	label.Position = UDim2.new(0, 10, 0, y)
+	label.BackgroundTransparency = 1
+	label.TextColor3 = Color3.fromRGB(255, 255, 255)
+	label.Font = Enum.Font.SourceSansBold
+	label.TextSize = 20
+	label.Text = name
+
+	local box = Instance.new("TextButton", content)
+	box.Size = UDim2.new(0, 30, 0, 30)
+	box.Position = UDim2.new(0, 120, 0, y)
+	box.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	box.Text = ""
+	box.TextColor3 = Color3.fromRGB(0, 255, 0)
+	box.Font = Enum.Font.SourceSansBold
+	box.TextSize = 24
+	Instance.new("UICorner", box).CornerRadius = UDim.new(0, 6)
+
+	local toggled = false
+	box.MouseButton1Click:Connect(function()
+		toggled = not toggled
+		box.Text = toggled and "✓" or ""
+		if toggled then
+			activateHack(name)
+		end
+	end)
+end
+
+createOption("FLY", 10)
+createOption("ESP", 50)
+createOption("NO GRA.", 90)
+createOption("NOCLIP", 130)
+
+-- Slider sistemi
+local function createSlider(name, y)
+	local label = Instance.new("TextLabel", content)
+	label.Size = UDim2.new(0, 100, 0, 30)
+	label.Position = UDim2.new(0, 10, 0, y)
+	label.BackgroundTransparency = 1
+	label.TextColor3 = Color3.fromRGB(255, 255, 255)
+	label.Font = Enum.Font.SourceSansBold
+	label.TextSize = 18
+	label.Text = name .. ": 50"
+
+	local bar = Instance.new("Frame", content)
+	bar.Size = UDim2.new(0, 200, 0, 6)
+	bar.Position = UDim2.new(0, 120, 0, y + 12)
+	bar.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+	Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 3)
+
+	local knob = Instance.new("Frame", bar)
+	knob.Size = UDim2.new(0, 10, 0, 20)
+	knob.Position = UDim2.new(0.25, 0, -0.5, 0)
+	knob.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+	knob.BorderSizePixel = 0
+	knob.Name = "Knob"
+	knob.Active = true
+	knob.Draggable = true
+	Instance.new("UICorner", knob).CornerRadius = UDim.new(0, 5)
+
+	local dragging = false
+	knob.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+		end
+	end)
+
+	knob.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = false
+		end
+	end)
+
+	game:GetService("RunService").RenderStepped:Connect(function()
+		if dragging then
+			local relX = math.clamp(mouse.X - bar.AbsolutePosition.X, 0, bar.AbsoluteSize.X)
+			local percent = relX / bar.AbsoluteSize.X
+			knob.Position = UDim2.new(percent, -5, -0.5, 0)
+			label.Text = name .. ": " .. math.floor(percent * 100)
+		end
+	end)
+end
+
+createSlider("Speed", 180)
+createSlider("Jump Speed", 220)
