@@ -1,17 +1,20 @@
--- Sistem değişkenleri
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local root = character:WaitForChild("HumanoidRootPart")
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local workspace = game:GetService("Workspace")
 
-local flying, noclip, espEnabled, gravityEnabled, guiVisible = false, false, false, true, true
-local speed, theme = 50, "dark"
-local bv, bg
+-- Ayarlar
+local flying = false
+local noclip = false
+local espEnabled = false
+local gravityEnabled = true
+local guiVisible = true
+local speed = 50
 
 -- Fly fonksiyonları
+local bv, bg
 local function startFly()
     if flying then return end
     flying = true
@@ -126,68 +129,52 @@ game.Players.PlayerAdded:Connect(function(plr)
     end)
 end)
 
--- GUI oluştur
+-- GUI
 local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "FlyMenu"
+gui.Name = "DeltaFlyMenu"
 
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 320, 0, 400)
+frame.Size = UDim2.new(0, 280, 0, 260)
 frame.Position = UDim2.new(0, 40, 0, 40)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
 frame.BorderSizePixel = 0
 frame.Active = true
+frame.Draggable = true
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
 
 local title = Instance.new("TextLabel", frame)
 title.Size = UDim2.new(1, 0, 0, 40)
 title.Position = UDim2.new(0, 0, 0, 0)
 title.BackgroundTransparency = 1
-title.Text = "🚀 Fly Control Panel"
+title.Text = "🚀 Delta Fly Menu"
 title.Font = Enum.Font.GothamBold
-title.TextSize = 24
+title.TextSize = 22
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 
 local function createButton(text, posY, callback)
     local btn = Instance.new("TextButton", frame)
-    btn.Size = UDim2.new(0, 280, 0, 35)
+    btn.Size = UDim2.new(0, 240, 0, 30)
     btn.Position = UDim2.new(0, 20, 0, posY)
     btn.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
     btn.Text = text
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 18
+    btn.TextSize = 16
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.MouseButton1Click:Connect(callback)
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
 end
 
 createButton("Toggle Fly", 50, function() if flying then stopFly() else startFly() end end)
-createButton("Toggle Noclip", 95, function() setNoclip(not noclip) end)
-createButton("Toggle ESP", 140, function() toggleESP(not espEnabled) end)
-createButton("Toggle Gravity", 185, function() toggleGravity(not gravityEnabled) end)
-createButton("Switch Theme", 230, function()
-    if theme == "dark" then
-        frame.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
-        title.TextColor3 = Color3.fromRGB(30, 30, 30)
-        theme = "light"
-    else
-        frame.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-        title.TextColor3 = Color3.fromRGB(255, 255, 255)
-        theme = "dark"
+createButton("Toggle Noclip", 90, function() setNoclip(not noclip) end)
+createButton("Toggle ESP", 130, function() toggleESP(not espEnabled) end)
+createButton("Toggle Gravity", 170, function() toggleGravity(not gravityEnabled) end)
+createButton("Close/Open Menu (G)", 210, function() guiVisible = not guiVisible frame.Visible = guiVisible end)
+
+-- G tuşuyla menü aç/kapa
+UIS.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.G then
+        guiVisible = not guiVisible
+        frame.Visible = guiVisible
     end
 end)
-
--- Slider sistemi
-local sliderLabel = Instance.new("TextLabel", frame)
-sliderLabel.Size = UDim2.new(0, 280, 0, 20)
-sliderLabel.Position = UDim2.new(0, 20, 0, 275)
-sliderLabel.BackgroundTransparency = 1
-sliderLabel.Text = "Fly Speed: " .. speed
-sliderLabel.Font = Enum.Font.Gotham
-sliderLabel.TextSize = 16
-sliderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-
-local sliderBar = Instance.new("Frame", frame)
-sliderBar.Size = UDim2.new(0, 280, 0, 8)
-sliderBar.Position = UDim2.new(0, 20, 0, 300)
-sliderBar.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-Instance.new("UICorner", sliderBar).Corner
