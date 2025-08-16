@@ -7,28 +7,66 @@ local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local rootPart = character:WaitForChild("HumanoidRootPart")
 
--- Toggle durumları
 local flyActive = false
 local noclipActive = false
 local bodyVelocity
 
--- GUI oluşturma
+local mouse = player:GetMouse()
+local rightClick = false
+
+-- Fly fonksiyonları
+local function startFly()
+    if bodyVelocity then bodyVelocity:Destroy() end
+    bodyVelocity = Instance.new("BodyVelocity", rootPart)
+    bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+    bodyVelocity.Velocity = Vector3.new(0,0,0)
+    humanoid.PlatformStand = true
+end
+
+local function stopFly()
+    if bodyVelocity then
+        bodyVelocity:Destroy()
+        bodyVelocity = nil
+    end
+    humanoid.PlatformStand = false
+end
+
+-- Noclip fonksiyonları
+local function noclipOn()
+    for _, part in pairs(character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = false
+        end
+    end
+end
+
+local function noclipOff()
+    for _, part in pairs(character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = true
+        end
+    end
+end
+
+-- GUI oluştur
 local screenGui = Instance.new("ScreenGui", game.CoreGui)
-screenGui.Name = "SimpleHackMenu"
+screenGui.Name = "FlyNoclipMenu"
 
 local frame = Instance.new("Frame", screenGui)
 frame.Size = UDim2.new(0, 350, 0, 200)
 frame.Position = UDim2.new(0.05, 0, 0.3, 0)
 frame.BackgroundColor3 = Color3.fromRGB(35,35,35)
 frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = false -- Draggable devre dışı, kendi sürükleme scriptimiz var
 
 local titleBar = Instance.new("Frame", frame)
 titleBar.Size = UDim2.new(1, 0, 0, 30)
 titleBar.BackgroundColor3 = Color3.fromRGB(20,20,20)
 
 local title = Instance.new("TextLabel", titleBar)
-title.Text = "Hack Menu"
-title.Size = UDim2.new(1, -60, 1, 0)
+title.Text = "Fly & Noclip Menu"
+title.Size = UDim2.new(1, -70, 1, 0)
 title.Position = UDim2.new(0, 10, 0, 0)
 title.TextColor3 = Color3.new(1,1,1)
 title.BackgroundTransparency = 1
@@ -59,7 +97,6 @@ content.Position = UDim2.new(0, 0, 0, 30)
 content.Size = UDim2.new(1, 0, 1, -30)
 content.BackgroundTransparency = 1
 
--- Checkbox fonksiyonu
 local function createOption(text, parent, y)
     local container = Instance.new("Frame", parent)
     container.Size = UDim2.new(1, -20, 0, 40)
@@ -97,7 +134,7 @@ end
 local flyCheckbox, flyTick = createOption("Fly", content, 0)
 local noclipCheckbox, noclipTick = createOption("Noclip", content, 50)
 
--- Sürükleme mekanizması
+-- Menü sürükleme kodu (sınır yok)
 local dragging = false
 local dragInput, dragStart, startPos
 
@@ -126,19 +163,17 @@ UIS.InputChanged:Connect(function(input)
         local delta = input.Position - dragStart
         frame.Position = UDim2.new(
             startPos.X.Scale,
-            math.clamp(startPos.X.Offset + delta.X, 0, workspace.CurrentCamera.ViewportSize.X - frame.AbsoluteSize.X),
+            startPos.X.Offset + delta.X,
             startPos.Y.Scale,
-            math.clamp(startPos.Y.Offset + delta.Y, 0, workspace.CurrentCamera.ViewportSize.Y - frame.AbsoluteSize.Y)
+            startPos.Y.Offset + delta.Y
         )
     end
 end)
 
--- Kapatma butonu
 closeBtn.MouseButton1Click:Connect(function()
     screenGui.Enabled = false
 end)
 
--- Küçült / büyüt butonu
 local minimized = false
 local originalSize = frame.Size
 local minimizedSize = UDim2.new(0, 120, 0, 30)
@@ -157,23 +192,7 @@ resizeBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Fly fonksiyonları
-local function startFly()
-    if bodyVelocity then bodyVelocity:Destroy() end
-    bodyVelocity = Instance.new("BodyVelocity", rootPart)
-    bodyVelocity.MaxForce = Vector3.new(1e5,1e5,1e5)
-    bodyVelocity.Velocity = Vector3.new(0,0,0)
-    humanoid.PlatformStand = true
-end
-
-local function stopFly()
-    if bodyVelocity then
-        bodyVelocity:Destroy()
-        bodyVelocity = nil
-    end
-    humanoid.PlatformStand = false
-end
-
+-- Fly toggle fonksiyonu
 local function toggleFly(state)
     flyActive = state
     flyTick.Visible = state
@@ -188,23 +207,7 @@ flyCheckbox.MouseButton1Click:Connect(function()
     toggleFly(not flyActive)
 end)
 
--- Noclip fonksiyonları
-local function noclipOn()
-    for _, part in pairs(character:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = false
-        end
-    end
-end
-
-local function noclipOff()
-    for _, part in pairs(character:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = true
-        end
-    end
-end
-
+-- Noclip toggle fonksiyonu
 local function toggleNoclip(state)
     noclipActive = state
     noclipTick.Visible = state
@@ -214,33 +217,39 @@ noclipCheckbox.MouseButton1Click:Connect(function()
     toggleNoclip(not noclipActive)
 end)
 
--- RunService ile sürekli kontrol
+-- Sağ tıklama dinle
+mouse.Button2Down:Connect(function()
+    rightClick = true
+    if flyActive then startFly() end
+end)
+
+mouse.Button2Up:Connect(function()
+    rightClick = false
+    if flyActive then stopFly() end
+end)
+
+-- Her frame güncellemesi
 RunService.Heartbeat:Connect(function()
-    -- Fly hareketi
-    if flyActive and bodyVelocity then
-        local dir = Vector3.new()
-        if UIS:IsKeyDown(Enum.KeyCode.W) then
-            dir = dir + workspace.CurrentCamera.CFrame.LookVector
-        end
-        if UIS:IsKeyDown(Enum.KeyCode.S) then
-            dir = dir - workspace.CurrentCamera.CFrame.LookVector
-        end
-        if UIS:IsKeyDown(Enum.KeyCode.A) then
-            dir = dir - workspace.CurrentCamera.CFrame.RightVector
-        end
-        if UIS:IsKeyDown(Enum.KeyCode.D) then
-            dir = dir + workspace.CurrentCamera.CFrame.RightVector
-        end
-        dir = Vector3.new(dir.X, 0, dir.Z)
-        if dir.Magnitude > 0 then
-            dir = dir.Unit
-            bodyVelocity.Velocity = dir * 100
-        else
-            bodyVelocity.Velocity = Vector3.new(0,0,0)
-        end
+    if flyActive and bodyVelocity and rightClick then
+        -- Fare pozisyonu ve karakterin root pozisyonu
+        local mousePos = mouse.Hit.p
+        local rootPos = rootPart.Position
+
+        -- Yatayda (Y ekseni sabit) fare yönüne vektör
+        local direction = (Vector3.new(mousePos.X, rootPos.Y, mousePos.Z) - rootPos).Unit
+
+        -- Karakteri bu yöne döndür
+        rootPart.CFrame = CFrame.new(rootPos, rootPos + direction)
+
+        -- Uçuş hızı
+        bodyVelocity.Velocity = direction * 100
+
+    elseif flyActive and bodyVelocity then
+        -- Sağ tıklama yoksa durdur
+        bodyVelocity.Velocity = Vector3.new(0,0,0)
     end
 
-    -- Noclip kontrolü
+    -- Noclip uygulama
     if noclipActive then
         noclipOn()
     else
