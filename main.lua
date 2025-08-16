@@ -1,23 +1,17 @@
+-- Sistem değişkenleri
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local root = character:WaitForChild("HumanoidRootPart")
-
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local workspace = game:GetService("Workspace")
 
-local flying = false
-local noclip = false
-local espEnabled = false
-local gravityEnabled = true
-local theme = "dark"
-local guiVisible = true
-local speed = 50
-
+local flying, noclip, espEnabled, gravityEnabled, guiVisible = false, false, false, true, true
+local speed, theme = 50, "dark"
 local bv, bg
 
--- Fly başlat
+-- Fly fonksiyonları
 local function startFly()
     if flying then return end
     flying = true
@@ -30,7 +24,6 @@ local function startFly()
     humanoid.PlatformStand = true
 end
 
--- Fly durdur
 local function stopFly()
     if not flying then return end
     flying = false
@@ -39,7 +32,6 @@ local function stopFly()
     humanoid.PlatformStand = false
 end
 
--- Hareket güncelleme
 RunService.Heartbeat:Connect(function()
     if flying then
         local moveDir = Vector3.zero
@@ -75,24 +67,49 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- ESP
+-- Gravity toggle
+local function toggleGravity(state)
+    gravityEnabled = state
+    workspace.Gravity = state and 196.2 or 80
+end
+
+-- ESP (BillboardGui + mesafe)
+local function createESP(targetPlayer)
+    if targetPlayer == player then return end
+    if not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("Head") then return end
+    local head = targetPlayer.Character.Head
+    local espGui = Instance.new("BillboardGui")
+    espGui.Name = "ESP"
+    espGui.Adornee = head
+    espGui.Size = UDim2.new(0, 100, 0, 40)
+    espGui.StudsOffset = Vector3.new(0, 2, 0)
+    espGui.AlwaysOnTop = true
+    espGui.Parent = head
+    local textLabel = Instance.new("TextLabel", espGui)
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextColor3 = Color3.new(1, 0, 0)
+    textLabel.TextStrokeTransparency = 0
+    textLabel.Font = Enum.Font.GothamBold
+    textLabel.TextSize = 14
+    textLabel.Text = "..."
+    RunService.RenderStepped:Connect(function()
+        if targetPlayer.Character and targetPlayer.Character:FindFirstChild("Head") then
+            local distance = (player.Character.Head.Position - targetPlayer.Character.Head.Position).Magnitude
+            textLabel.Text = targetPlayer.Name .. " [" .. math.floor(distance) .. "m]"
+        end
+    end)
+end
+
 local function toggleESP(state)
     espEnabled = state
     for _, plr in pairs(game.Players:GetPlayers()) do
-        if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") then
-            local head = plr.Character.Head
+        if plr.Character then
             if state then
-                if not head:FindFirstChild("ESP") then
-                    local box = Instance.new("BoxHandleAdornment", head)
-                    box.Name = "ESP"
-                    box.Size = Vector3.new(2, 2, 1)
-                    box.Color3 = Color3.new(1, 0, 0)
-                    box.AlwaysOnTop = true
-                    box.ZIndex = 10
-                    box.Adornee = head
-                end
+                createESP(plr)
             else
-                if head:FindFirstChild("ESP") then
+                local head = plr.Character:FindFirstChild("Head")
+                if head and head:FindFirstChild("ESP") then
                     head.ESP:Destroy()
                 end
             end
@@ -100,13 +117,16 @@ local function toggleESP(state)
     end
 end
 
--- Gravity
-local function toggleGravity(state)
-    gravityEnabled = state
-    workspace.Gravity = state and 196.2 or 0
-end
+game.Players.PlayerAdded:Connect(function(plr)
+    plr.CharacterAdded:Connect(function()
+        wait(1)
+        if espEnabled then
+            createESP(plr)
+        end
+    end)
+end)
 
--- GUI
+-- GUI oluştur
 local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 gui.Name = "FlyMenu"
 
@@ -116,7 +136,6 @@ frame.Position = UDim2.new(0, 40, 0, 40)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
 frame.BorderSizePixel = 0
 frame.Active = true
-frame.Draggable = true
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
 
 local title = Instance.new("TextLabel", frame)
@@ -141,22 +160,10 @@ local function createButton(text, posY, callback)
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
 end
 
-createButton("Toggle Fly", 50, function()
-    if flying then stopFly() else startFly() end
-end)
-
-createButton("Toggle Noclip", 95, function()
-    setNoclip(not noclip)
-end)
-
-createButton("Toggle ESP", 140, function()
-    toggleESP(not espEnabled)
-end)
-
-createButton("Toggle Gravity", 185, function()
-    toggleGravity(not gravityEnabled)
-end)
-
+createButton("Toggle Fly", 50, function() if flying then stopFly() else startFly() end end)
+createButton("Toggle Noclip", 95, function() setNoclip(not noclip) end)
+createButton("Toggle ESP", 140, function() toggleESP(not espEnabled) end)
+createButton("Toggle Gravity", 185, function() toggleGravity(not gravityEnabled) end)
 createButton("Switch Theme", 230, function()
     if theme == "dark" then
         frame.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
@@ -169,7 +176,7 @@ createButton("Switch Theme", 230, function()
     end
 end)
 
--- Slider
+-- Slider sistemi
 local sliderLabel = Instance.new("TextLabel", frame)
 sliderLabel.Size = UDim2.new(0, 280, 0, 20)
 sliderLabel.Position = UDim2.new(0, 20, 0, 275)
@@ -183,27 +190,4 @@ local sliderBar = Instance.new("Frame", frame)
 sliderBar.Size = UDim2.new(0, 280, 0, 8)
 sliderBar.Position = UDim2.new(0, 20, 0, 300)
 sliderBar.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-Instance.new("UICorner", sliderBar).CornerRadius = UDim.new(0, 4)
-
-local sliderHandle = Instance.new("Frame", sliderBar)
-sliderHandle.Size = UDim2.new(0, 12, 0, 20)
-sliderHandle.Position = UDim2.new(0, (speed - 10)/190 * 280, 0, -6)
-sliderHandle.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-Instance.new("UICorner", sliderHandle).CornerRadius = UDim.new(0, 6)
-sliderHandle.Active = true
-sliderHandle.Draggable = true
-
-sliderHandle:GetPropertyChangedSignal("Position"):Connect(function()
-    local x = math.clamp(sliderHandle.Position.X.Offset, 0, 280)
-    speed = math.floor(10 + (x / 280) * 190)
-    sliderLabel.Text = "Fly Speed: " .. speed
-end)
-
--- GUI toggle (G tuşu)
-UIS.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.G then
-        guiVisible = not guiVisible
-        frame.Visible = guiVisible
-    end
-end)
+Instance.new("UICorner", sliderBar).Corner
