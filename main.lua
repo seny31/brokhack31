@@ -1,21 +1,23 @@
--- Roblox Full GUI Hack Menu by Arda
+local player = game.Players.LocalPlayer
+local mouse = player:GetMouse()
 local UIS = game:GetService("UserInputService")
-local TS = game:GetService("TweenService")
 local RS = game:GetService("RunService")
-local LP = game.Players.LocalPlayer
-local mouse = LP:GetMouse()
+local TS = game:GetService("TweenService")
 
 -- Blur
 local blur = Instance.new("BlurEffect", game.Lighting)
 blur.Size = 10
 
+-- GUI
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "ArdaGUI"
+
 -- Frame
-local frame = Instance.new("Frame")
+local frame = Instance.new("Frame", gui)
 frame.Size = UDim2.new(0, 0, 0, 0)
 frame.Position = UDim2.new(0.5, -150, 0.5, -150)
 frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 frame.BorderSizePixel = 0
-frame.Parent = game.CoreGui
 local corner = Instance.new("UICorner", frame)
 corner.CornerRadius = UDim.new(0, 12)
 TS:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Back), {
@@ -65,7 +67,7 @@ local bv = nil
 local flyBtn = createButton("Fly Aç/Kapat", 240, function()
     flying = not flying
     if flying then
-        bv = Instance.new("BodyVelocity", LP.Character.HumanoidRootPart)
+        bv = Instance.new("BodyVelocity", player.Character.HumanoidRootPart)
         bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
         RS:BindToRenderStep("Fly", 0, function()
             bv.Velocity = mouse.Hit.lookVector * speed
@@ -84,8 +86,8 @@ local noclipBtn = createButton("Noclip Aç/Kapat", 280, function()
     noclipBtn.BackgroundColor3 = noclip and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(40, 40, 40)
 end)
 RS.Stepped:Connect(function()
-    if noclip then
-        for _, part in pairs(LP.Character:GetDescendants()) do
+    if noclip and player.Character then
+        for _, part in pairs(player.Character:GetDescendants()) do
             if part:IsA("BasePart") then
                 part.CanCollide = false
             end
@@ -98,16 +100,16 @@ local espActive = false
 local espBtn = createButton("ESP Aç/Kapat", 320, function()
     espActive = not espActive
     if espActive then
-        for _, player in pairs(game.Players:GetPlayers()) do
-            if player ~= LP and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        for _, p in pairs(game.Players:GetPlayers()) do
+            if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
                 local box = Instance.new("BoxHandleAdornment")
                 box.Size = Vector3.new(4, 5, 2)
-                box.Adornee = player.Character.HumanoidRootPart
+                box.Adornee = p.Character.HumanoidRootPart
                 box.AlwaysOnTop = true
                 box.ZIndex = 5
                 box.Color3 = Color3.new(1, 0, 0)
                 box.Transparency = 0.5
-                box.Parent = player.Character
+                box.Parent = p.Character
             end
         end
     else
@@ -124,27 +126,12 @@ local espBtn = createButton("ESP Aç/Kapat", 320, function()
     espBtn.BackgroundColor3 = espActive and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(40, 40, 40)
 end)
 
--- Speed Label
-local speedLabel = Instance.new("TextLabel", frame)
-speedLabel.Size = UDim2.new(0, 240, 0, 25)
-speedLabel.Position = UDim2.new(0, 20, 0, 40)
-speedLabel.BackgroundTransparency = 1
-speedLabel.TextColor3 = Color3.new(1, 1, 1)
-speedLabel.Font = Enum.Font.Gotham
-speedLabel.TextSize = 16
-speedLabel.Text = "Fly Speed: " .. speed
-local function updateSpeedLabel()
-    speedLabel.Text = "Fly Speed: " .. speed
-end
-
 -- Speed & Gravity
 createButton("Speed +", 160, function()
     speed = math.clamp(speed + 10, 10, 200)
-    updateSpeedLabel()
 end)
 createButton("Speed -", 200, function()
     speed = math.clamp(speed - 10, 10, 200)
-    updateSpeedLabel()
 end)
 createButton("Gravity +", 80, function()
     game.Workspace.Gravity = math.clamp(game.Workspace.Gravity + 25, 0, 500)
@@ -174,6 +161,8 @@ closeBtn.Font = Enum.Font.GothamBold
 closeBtn.TextSize = 18
 local closeCorner = Instance.new("UICorner", closeBtn)
 closeCorner.CornerRadius = UDim.new(0, 8)
+closeBtn.Parent = frame
+
 closeBtn.MouseButton1Click:Connect(function()
     frame.Visible = false
     blur.Enabled = false
