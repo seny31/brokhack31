@@ -1,9 +1,7 @@
--- Arda için tam özellikli hile menüsü
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local mouse = player:GetMouse()
-
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 
@@ -19,8 +17,6 @@ local main = Instance.new("Frame", gui)
 main.Size = UDim2.new(0, 600, 0, 300)
 main.Position = UDim2.new(0.5, -300, 0.5, -150)
 main.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-main.BorderSizePixel = 4
-main.BorderColor3 = Color3.fromRGB(255, 255, 255)
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 8)
 
 local closeBtn = Instance.new("TextButton", main)
@@ -40,37 +36,16 @@ sidebar.Position = UDim2.new(0, 0, 0, 0)
 sidebar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, 8)
 
-local function createSidebarButton(name, y)
-	local btn = Instance.new("TextButton", sidebar)
-	btn.Size = UDim2.new(0, 100, 0, 40)
-	btn.Position = UDim2.new(0, 10, 0, y)
-	btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-	btn.Font = Enum.Font.SourceSansBold
-	btn.TextSize = 20
-	btn.Text = name
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
-end
-
-createSidebarButton("Hacks", 20)
-createSidebarButton("Settings", 80)
-
 local content = Instance.new("Frame", main)
 content.Size = UDim2.new(1, -140, 1, -20)
 content.Position = UDim2.new(0, 130, 0, 10)
 content.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 Instance.new("UICorner", content).CornerRadius = UDim.new(0, 8)
 
-local toggles = {
-	FLY = false,
-	NOCLIP = false,
-	ESP = false,
-	["NO GRA."] = false
-}
+local toggles = {FLY=false, ESP=false, NOCLIP=false, ["NO GRA."]=false}
 local flySpeed = 50
 local bodyGyro, bodyVelocity
 
--- FLY sistemi
 RunService.RenderStepped:Connect(function()
 	if toggles.FLY and character:FindFirstChild("HumanoidRootPart") then
 		bodyGyro.CFrame = workspace.CurrentCamera.CFrame
@@ -79,15 +54,11 @@ RunService.RenderStepped:Connect(function()
 end)
 
 local function enableFly()
-	if not character:FindFirstChild("HumanoidRootPart") then return end
 	character.Humanoid.PlatformStand = true
 	bodyGyro = Instance.new("BodyGyro", character.HumanoidRootPart)
 	bodyGyro.P = 9e4
 	bodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-	bodyGyro.CFrame = character.HumanoidRootPart.CFrame
-
 	bodyVelocity = Instance.new("BodyVelocity", character.HumanoidRootPart)
-	bodyVelocity.Velocity = Vector3.new(0, 0, 0)
 	bodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
 end
 
@@ -97,7 +68,6 @@ local function disableFly()
 	if bodyVelocity then bodyVelocity:Destroy() end
 end
 
--- NOCLIP
 RunService.Stepped:Connect(function()
 	if character then
 		for _, part in pairs(character:GetDescendants()) do
@@ -108,7 +78,6 @@ RunService.Stepped:Connect(function()
 	end
 end)
 
--- ESP sistemi
 local function toggleESP(state)
 	for _, plr in pairs(Players:GetPlayers()) do
 		if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") then
@@ -120,7 +89,6 @@ local function toggleESP(state)
 				gui.AlwaysOnTop = true
 
 				local circle = Instance.new("ImageLabel", gui)
-				circle.Name = "ESPCircle"
 				circle.Size = UDim2.new(0, 50, 0, 50)
 				circle.BackgroundTransparency = 1
 				circle.Image = "rbxassetid://200527618"
@@ -149,7 +117,6 @@ local function toggleESP(state)
 	end
 end
 
--- Hile güncelleme
 local function updateHack(name, state)
 	toggles[name] = state
 	if name == "FLY" then state and enableFly() or disableFly()
@@ -158,7 +125,6 @@ local function updateHack(name, state)
 	end
 end
 
--- Kutucuklar
 local function createOption(name, y)
 	local label = Instance.new("TextLabel", content)
 	label.Size = UDim2.new(0, 100, 0, 30)
@@ -191,10 +157,57 @@ createOption("ESP", 50)
 createOption("NO GRA.", 90)
 createOption("NOCLIP", 130)
 
--- Sliderlar
 local function createSlider(name, y)
 	local label = Instance.new("TextLabel", content)
 	label.Size = UDim2.new(0, 100, 0, 30)
 	label.Position = UDim2.new(0, 10, 0, y)
 	label.BackgroundTransparency = 1
-	label.TextColor3 = Color3.fromRGB(255
+	label.TextColor3 = Color3.fromRGB(255, 255, 255)
+	label.Font = Enum.Font.SourceSansBold
+	label.TextSize = 18
+	label.Text = name .. ": 50"
+
+	local bar = Instance.new("Frame", content)
+	bar.Size = UDim2.new(0, 200, 0, 6)
+	bar.Position = UDim2.new(0, 120, 0, y + 12)
+	bar.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+	Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 3)
+
+	local knob = Instance.new("Frame", bar)
+	knob.Size = UDim2.new(0, 10, 0, 20)
+	knob.Position = UDim2.new	(0.25, -5, -0.5, 0)
+	knob.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+	knob.BorderSizePixel = 0
+	knob.Name = "Knob"
+	knob.Active = true
+	knob.Draggable = true
+	Instance.new("UICorner", knob).CornerRadius = UDim.new(0, 5)
+
+	local dragging = false
+	knob.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end
+	end)
+	knob.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+	end)
+
+	RunService.RenderStepped:Connect(function()
+		if dragging then
+			local relX = math.clamp(mouse.X - bar.AbsolutePosition.X, 0, bar.AbsoluteSize.X)
+			local percent = relX / bar.AbsoluteSize.X
+			knob.Position = UDim2.new(percent, -5, -0.5, 0)
+			local value = math.floor(percent * 100)
+			label.Text = name .. ": " .. value
+
+			if name == "Speed" then
+				humanoid.WalkSpeed = value
+				flySpeed = value
+			elseif name == "Jump Speed" then
+				humanoid.JumpPower = value
+			end
+		end
+	end)
+end
+
+createSlider("Speed", 180)
+createSlider("Jump Speed", 220)
