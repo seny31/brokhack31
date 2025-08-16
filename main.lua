@@ -3,208 +3,133 @@ local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local root = character:WaitForChild("HumanoidRootPart")
 
-local flying = false
-local noclip = false
-local speed = 50
-
-local bv
-local bg
-
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
--- Fly fonksiyonları
+local flying = false
+local speed = 50
+local bv
+local bg
+
+-- Fly başlat
 local function startFly()
     if flying then return end
     flying = true
+
     bv = Instance.new("BodyVelocity", root)
-    bv.MaxForce = Vector3.new(1e5,1e5,1e5)
-    bv.Velocity = Vector3.new(0,0,0)
+    bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+    bv.Velocity = Vector3.zero
 
     bg = Instance.new("BodyGyro", root)
-    bg.MaxTorque = Vector3.new(1e5,1e5,1e5)
+    bg.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
     bg.CFrame = root.CFrame
 
     humanoid.PlatformStand = true
 end
 
+-- Fly durdur
 local function stopFly()
     if not flying then return end
     flying = false
+
     if bv then bv:Destroy() end
     if bg then bg:Destroy() end
+
     humanoid.PlatformStand = false
 end
 
--- Noclip fonksiyonu
-local function setNoclip(state)
-    noclip = state
-    if noclip then
-        for _, part in pairs(character:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide == true then
-                part.CanCollide = false
-            end
-        end
-    else
-        for _, part in pairs(character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = true
-            end
-        end
-    end
-end
-
--- Noclip bazen engellere takılmayı azaltmak için sürekli kontrol (nadir engeller için)
-RunService.Stepped:Connect(function()
-    if noclip then
-        for _, part in pairs(character:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide == true then
-                part.CanCollide = false
-            end
-        end
-    end
-end)
-
--- Fly hareket güncelleme
+-- Hareket güncelleme
 RunService.Heartbeat:Connect(function()
     if flying then
-        local moveDir = Vector3.new()
+        local moveDir = Vector3.zero
+
         if UIS:IsKeyDown(Enum.KeyCode.W) then
-            moveDir = moveDir + workspace.CurrentCamera.CFrame.LookVector
+            moveDir += workspace.CurrentCamera.CFrame.LookVector
         end
         if UIS:IsKeyDown(Enum.KeyCode.S) then
-            moveDir = moveDir - workspace.CurrentCamera.CFrame.LookVector
+            moveDir -= workspace.CurrentCamera.CFrame.LookVector
         end
         if UIS:IsKeyDown(Enum.KeyCode.A) then
-            moveDir = moveDir - workspace.CurrentCamera.CFrame.RightVector
+            moveDir -= workspace.CurrentCamera.CFrame.RightVector
         end
         if UIS:IsKeyDown(Enum.KeyCode.D) then
-            moveDir = moveDir + workspace.CurrentCamera.CFrame.RightVector
+            moveDir += workspace.CurrentCamera.CFrame.RightVector
         end
 
         if moveDir.Magnitude > 0 then
             moveDir = moveDir.Unit * speed
         end
 
-        if bv then
-            bv.Velocity = moveDir
-        end
-        if bg then
-            bg.CFrame = workspace.CurrentCamera.CFrame
-        end
+        bv.Velocity = moveDir
+        bg.CFrame = workspace.CurrentCamera.CFrame
     end
 end)
 
--- Menü oluşturma
+-- GUI oluştur
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "FlyMenu"
 
-local playerGui = player:WaitForChild("PlayerGui")
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "Seny31HackMenu"
-screenGui.Parent = playerGui
-
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 280, 0, 140)
-frame.Position = UDim2.new(0, 20, 0, 20)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 300, 0, 180)
+frame.Position = UDim2.new(0, 30, 0, 30)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
 frame.BorderSizePixel = 0
-frame.Parent = screenGui
 frame.Active = true
 frame.Draggable = true
+frame.AnchorPoint = Vector2.new(0, 0)
+frame.BackgroundTransparency = 0.1
 
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -50, 0, 40)
-title.Position = UDim2.new(0, 5, 0, 5)
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Position = UDim2.new(0, 0, 0, 0)
 title.BackgroundTransparency = 1
-title.Text = "seny31 hack mk mert"
-title.TextColor3 = Color3.fromRGB(230, 230, 230)
+title.Text = "🚀 Fly Control Panel"
 title.Font = Enum.Font.GothamBold
 title.TextSize = 24
-title.TextXAlignment = Enum.TextXAlignment.Center
-title.Parent = frame
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
 
-local function createCheckbox(text, posY)
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0, 200, 0, 30)
-    label.Position = UDim2.new(0, 60, 0, posY)
-    label.BackgroundTransparency = 1
-    label.Text = text
-    label.TextColor3 = Color3.fromRGB(200, 200, 200)
-    label.Font = Enum.Font.Gotham
-    label.TextSize = 20
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
+local flyButton = Instance.new("TextButton", frame)
+flyButton.Size = UDim2.new(0, 260, 0, 40)
+flyButton.Position = UDim2.new(0, 20, 0, 50)
+flyButton.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+flyButton.Text = "Toggle Fly"
+flyButton.Font = Enum.Font.GothamBold
+flyButton.TextSize = 20
+flyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+flyButton.AutoButtonColor = true
 
-    local checkbox = Instance.new("TextButton")
-    checkbox.Size = UDim2.new(0, 35, 0, 35)
-    checkbox.Position = UDim2.new(0, 15, 0, posY)
-    checkbox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    checkbox.Text = ""
-    checkbox.TextColor3 = Color3.new(0,0,0)
-    checkbox.Font = Enum.Font.SourceSansBold
-    checkbox.TextSize = 28
-    checkbox.Parent = frame
-
-    return checkbox
-end
-
-local flyCheckbox = createCheckbox("Enable Fly", 55)
-local noclipCheckbox = createCheckbox("Enable Noclip", 95)
-
-local function updateCheckbox(checkbox, state)
-    if state then
-        checkbox.Text = "✔"
-        checkbox.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
-    else
-        checkbox.Text = ""
-        checkbox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    end
-end
-
-flyCheckbox.MouseButton1Click:Connect(function()
+flyButton.MouseButton1Click:Connect(function()
     if flying then
         stopFly()
+        flyButton.Text = "Toggle Fly (Off)"
+        flyButton.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
     else
         startFly()
+        flyButton.Text = "Toggle Fly (On)"
+        flyButton.BackgroundColor3 = Color3.fromRGB(60, 180, 60)
     end
-    updateCheckbox(flyCheckbox, flying)
 end)
 
-noclipCheckbox.MouseButton1Click:Connect(function()
-    setNoclip(not noclip)
-    updateCheckbox(noclipCheckbox, noclip)
-end)
+local speedLabel = Instance.new("TextLabel", frame)
+speedLabel.Size = UDim2.new(0, 260, 0, 30)
+speedLabel.Position = UDim2.new(0, 20, 0, 100)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Text = "Speed: " .. speed
+speedLabel.Font = Enum.Font.Gotham
+speedLabel.TextSize = 18
+speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 
-updateCheckbox(flyCheckbox, flying)
-updateCheckbox(noclipCheckbox, noclip)
+local speedSlider = Instance.new("TextButton", frame)
+speedSlider.Size = UDim2.new(0, 260, 0, 30)
+speedSlider.Position = UDim2.new(0, 20, 0, 130)
+speedSlider.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+speedSlider.Text = "Click to Increase Speed"
+speedSlider.Font = Enum.Font.Gotham
+speedSlider.TextSize = 16
+speedSlider.TextColor3 = Color3.fromRGB(255, 255, 255)
 
--- Menü küçült/büyüt butonu
-
-local toggleButton = Instance.new("TextButton")
-toggleButton.Size = UDim2.new(0, 40, 0, 35)
-toggleButton.Position = UDim2.new(1, -45, 0, 5)
-toggleButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-toggleButton.TextColor3 = Color3.fromRGB(230, 230, 230)
-toggleButton.Font = Enum.Font.GothamBold
-toggleButton.TextSize = 28
-toggleButton.Text = "-"
-toggleButton.Parent = frame
-
-local menuExpanded = true
-
-toggleButton.MouseButton1Click:Connect(function()
-    if menuExpanded then
-        -- Küçült
-        frame.Size = UDim2.new(0, 280, 0, 50)
-        flyCheckbox.Visible = false
-        noclipCheckbox.Visible = false
-        toggleButton.Text = "+"
-        menuExpanded = false
-    else
-        -- Büyüt
-        frame.Size = UDim2.new(0, 280, 0, 140)
-        flyCheckbox.Visible = true
-        noclipCheckbox.Visible = true
-        toggleButton.Text = "-"
-        menuExpanded = true
-    end
+speedSlider.MouseButton1Click:Connect(function()
+    speed += 10
+    if speed > 200 then speed = 10 end
+    speedLabel.Text = "Speed: " .. speed
 end)
