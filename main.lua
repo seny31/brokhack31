@@ -1,4 +1,5 @@
--- Services
+-- Basit Fly ve Noclip Menü Scripti
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
@@ -10,147 +11,93 @@ local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local rootPart = character:WaitForChild("HumanoidRootPart")
 
--- Variables
 local flyActive = false
 local noclipActive = false
 local bodyVelocity, bodyGyro
 
-local moveVector = Vector3.new(0,0,0)
+local moveVector = Vector3.new()
 local speed = 100
 
--- UI Setup
+-- UI
 local ScreenGui = Instance.new("ScreenGui", player.PlayerGui)
 ScreenGui.Name = "FlyNoclipMenu"
 
-local mainFrame = Instance.new("Frame", ScreenGui)
-mainFrame.Size = UDim2.new(0, 400, 0, 250)
-mainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-mainFrame.BorderSizePixel = 0
-mainFrame.Active = true
-mainFrame.Draggable = true
+local frame = Instance.new("Frame", ScreenGui)
+frame.Size = UDim2.new(0, 300, 0, 200)
+frame.Position = UDim2.new(0.3, 0, 0.3, 0)
+frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+frame.Active = true
+frame.Draggable = true
 
-local UIStroke = Instance.new("UIStroke", mainFrame)
-UIStroke.Thickness = 2
-UIStroke.Color = Color3.fromRGB(0, 170, 255)
-UIStroke.Transparency = 0.3
-
--- Shadow
-local shadow = Instance.new("Frame", mainFrame)
-shadow.Size = UDim2.new(1, 8, 1, 8)
-shadow.Position = UDim2.new(0, -4, 0, -4)
-shadow.BackgroundColor3 = Color3.new(0, 0, 0)
-shadow.BackgroundTransparency = 0.7
-shadow.ZIndex = 0
-shadow.BorderSizePixel = 0
-
--- Title
-local title = Instance.new("TextLabel", mainFrame)
-title.Size = UDim2.new(1, 0, 0, 40)
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 30)
 title.BackgroundTransparency = 1
 title.Text = "Fly & Noclip Menu"
-title.TextColor3 = Color3.fromRGB(0, 170, 255)
+title.TextColor3 = Color3.fromRGB(0,170,255)
 title.Font = Enum.Font.GothamBold
-title.TextSize = 28
-title.TextStrokeTransparency = 0.7
-title.Position = UDim2.new(0,0,0,0)
+title.TextSize = 24
 
--- Close Button (X)
-local closeBtn = Instance.new("TextButton", mainFrame)
-closeBtn.Size = UDim2.new(0, 30, 0, 30)
-closeBtn.Position = UDim2.new(1, -35, 0, 5)
-closeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-closeBtn.Text = "✕"
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 24
-closeBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
-closeBtn.BorderSizePixel = 0
+local flyCheckbox = Instance.new("TextButton", frame)
+flyCheckbox.Size = UDim2.new(0, 30, 0, 30)
+flyCheckbox.Position = UDim2.new(0, 10, 0, 50)
+flyCheckbox.BackgroundColor3 = Color3.fromRGB(30,30,30)
+flyCheckbox.Text = ""
+local flyChecked = false
 
-closeBtn.MouseButton1Click:Connect(function()
-    ScreenGui.Enabled = false
-    stopFly()
-    stopNoclip()
-end)
+local flyLabel = Instance.new("TextLabel", frame)
+flyLabel.Size = UDim2.new(0, 100, 0, 30)
+flyLabel.Position = UDim2.new(0, 50, 0, 50)
+flyLabel.Text = "Fly"
+flyLabel.TextColor3 = Color3.fromRGB(200,200,200)
+flyLabel.BackgroundTransparency = 1
+flyLabel.Font = Enum.Font.Gotham
+flyLabel.TextSize = 22
+flyLabel.TextXAlignment = Enum.TextXAlignment.Left
 
--- Minimize/Maximize Button (+)
-local minMaxBtn = Instance.new("TextButton", mainFrame)
-minMaxBtn.Size = UDim2.new(0, 30, 0, 30)
-minMaxBtn.Position = UDim2.new(1, -70, 0, 5)
-minMaxBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-minMaxBtn.Text = "+"
-minMaxBtn.Font = Enum.Font.GothamBold
-minMaxBtn.TextSize = 28
-minMaxBtn.TextColor3 = Color3.fromRGB(0, 170, 255)
-minMaxBtn.BorderSizePixel = 0
+local noclipCheckbox = Instance.new("TextButton", frame)
+noclipCheckbox.Size = UDim2.new(0, 30, 0, 30)
+noclipCheckbox.Position = UDim2.new(0, 10, 0, 90)
+noclipCheckbox.BackgroundColor3 = Color3.fromRGB(30,30,30)
+noclipCheckbox.Text = ""
+local noclipChecked = false
 
-local minimized = false
-minMaxBtn.MouseButton1Click:Connect(function()
-    if minimized then
-        mainFrame.Size = UDim2.new(0, 400, 0, 250)
-        minimized = false
+local noclipLabel = Instance.new("TextLabel", frame)
+noclipLabel.Size = UDim2.new(0, 100, 0, 30)
+noclipLabel.Position = UDim2.new(0, 50, 0, 90)
+noclipLabel.Text = "Noclip"
+noclipLabel.TextColor3 = Color3.fromRGB(200,200,200)
+noclipLabel.BackgroundTransparency = 1
+noclipLabel.Font = Enum.Font.Gotham
+noclipLabel.TextSize = 22
+noclipLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local function toggleFly()
+    flyChecked = not flyChecked
+    flyCheckbox.Text = flyChecked and "✔" or ""
+    if flyChecked then
+        startFly()
     else
-        mainFrame.Size = UDim2.new(0, 200, 0, 40)
-        minimized = true
+        stopFly()
     end
-end)
-
--- Checkbox Creator
-local function createCheckbox(parent, text, pos)
-    local frame = Instance.new("Frame", parent)
-    frame.Size = UDim2.new(0, 180, 0, 40)
-    frame.Position = pos
-    frame.BackgroundTransparency = 1
-
-    local label = Instance.new("TextLabel", frame)
-    label.Text = text
-    label.Size = UDim2.new(1, -40, 1, 0)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(220,220,220)
-    label.Font = Enum.Font.Gotham
-    label.TextSize = 22
-    label.TextXAlignment = Enum.TextXAlignment.Left
-
-    local box = Instance.new("TextButton", frame)
-    box.Size = UDim2.new(0, 30, 0, 30)
-    box.Position = UDim2.new(1, -35, 0, 5)
-    box.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    box.BorderSizePixel = 1
-    box.BorderColor3 = Color3.fromRGB(0, 170, 255)
-    box.Text = ""
-    box.AutoButtonColor = false
-
-    local checked = false
-    local checkMark = Instance.new("TextLabel", box)
-    checkMark.Text = "✔"
-    checkMark.Font = Enum.Font.GothamBold
-    checkMark.TextSize = 24
-    checkMark.TextColor3 = Color3.fromRGB(0, 170, 255)
-    checkMark.BackgroundTransparency = 1
-    checkMark.Size = UDim2.new(1,0,1,0)
-    checkMark.Visible = false
-
-    box.MouseButton1Click:Connect(function()
-        checked = not checked
-        checkMark.Visible = checked
-        if text == "Fly" then
-            if checked then
-                startFly()
-            else
-                stopFly()
-            end
-        elseif text == "Noclip" then
-            if checked then
-                startNoclip()
-            else
-                stopNoclip()
-            end
-        end
-    end)
-
-    return box
 end
 
--- Fly functions (Private Server style)
+local function toggleNoclip()
+    noclipChecked = not noclipChecked
+    noclipCheckbox.Text = noclipChecked and "✔" or ""
+    if noclipChecked then
+        startNoclip()
+    else
+        stopNoclip()
+    end
+end
+
+flyCheckbox.MouseButton1Click:Connect(toggleFly)
+flyLabel.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then toggleFly() end end)
+
+noclipCheckbox.MouseButton1Click:Connect(toggleNoclip)
+noclipLabel.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then toggleNoclip() end end)
+
+-- Fly Fonksiyonları
 function startFly()
     if flyActive then return end
     flyActive = true
@@ -160,11 +107,11 @@ function startFly()
 
     bodyVelocity = Instance.new("BodyVelocity", rootPart)
     bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-    bodyVelocity.Velocity = Vector3.new(0,0,0)
+    bodyVelocity.Velocity = Vector3.new()
 
     bodyGyro = Instance.new("BodyGyro", rootPart)
-    bodyGyro.MaxTorque = Vector3.new(4e4,4e4,4e4)
-    bodyGyro.P = 2000
+    bodyGyro.MaxTorque = Vector3.new(4e4, 4e4, 4e4)
+    bodyGyro.P = 10000
     bodyGyro.D = 1000
 end
 
@@ -172,17 +119,17 @@ function stopFly()
     flyActive = false
     if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
     if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
-    moveVector = Vector3.new(0,0,0)
     humanoid.PlatformStand = false
+    moveVector = Vector3.new()
 end
 
--- Noclip
-local noclipConn
+-- Noclip Fonksiyonları
+local noclipConnection
 function startNoclip()
     if noclipActive then return end
     noclipActive = true
 
-    noclipConn = RunService.Stepped:Connect(function()
+    noclipConnection = RunService.Stepped:Connect(function()
         for _, part in pairs(character:GetDescendants()) do
             if part:IsA("BasePart") and part.CanCollide then
                 part.CanCollide = false
@@ -193,9 +140,9 @@ end
 
 function stopNoclip()
     noclipActive = false
-    if noclipConn then
-        noclipConn:Disconnect()
-        noclipConn = nil
+    if noclipConnection then
+        noclipConnection:Disconnect()
+        noclipConnection = nil
     end
     for _, part in pairs(character:GetDescendants()) do
         if part:IsA("BasePart") then
@@ -215,7 +162,7 @@ mouse.Button2Down:Connect(function()
     end
 end)
 
--- WASD hareket
+-- WASD Hareketi
 UIS.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Enum.KeyCode.W then
@@ -241,17 +188,7 @@ UIS.InputEnded:Connect(function(input)
     end
 end)
 
--- Hareket güncelleme
+-- Hareket Güncelleme
 RunService.Heartbeat:Connect(function()
     if flyActive and bodyVelocity and bodyGyro then
-        humanoid.PlatformStand = true
-        local lookCFrame = bodyGyro.CFrame
-        local forward = lookCFrame.LookVector
-        local right = lookCFrame.RightVector
-
-        local direction = (forward * moveVector.Z + right * moveVector.X)
-        if direction.Magnitude > 0 then
-            direction = direction.Unit
-        end
-
-       
+        humanoid.PlatformStand
