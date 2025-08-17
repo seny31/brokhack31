@@ -1,134 +1,91 @@
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+local LP = Players.LocalPlayer
+local Humanoid = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
 
-local espEnabled = true
-local guiEnabled = true
-local espTags = {}
+-- 🛡️ Anti-Ban Başlat
+local mt = getrawmetatable(game)
+setreadonly(mt, false)
+local old = mt.__namecall
 
--- GUI Menü
-local screenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-screenGui.Name = "ESPMenu"
-screenGui.ResetOnSpawn = false
-screenGui.IgnoreGuiInset = true
+mt.__namecall = newcclosure(function(self, ...)
+    local args = {...}
+    local method = getnamecallmethod()
 
-local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0, 180, 0, 120)
-frame.Position = UDim2.new(0, 20, 0, 20)
-frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-frame.BackgroundTransparency = 0.2
-frame.BorderSizePixel = 0
-frame.Active = true
-frame.Draggable = true
+    if method == "FireServer" or method == "InvokeServer" then
+        local name = tostring(self)
+        if string.find(name:lower(), "ban") or string.find(name:lower(), "kick") or string.find(name:lower(), "log") or string.find(name:lower(), "report") then
+            warn("⛔ Anti-Ban engelledi: " .. name)
+            return nil
+        end
+    end
 
-local title = Instance.new("TextLabel", frame)
+    return old(self, ...)
+end)
+
+LP.Kick = function() return nil end
+hookfunction(LP.Kick, function() return nil end)
+pcall(function()
+    game:GetService("CoreGui"):WaitForChild("RobloxPromptGui"):Destroy()
+end)
+
+-- ⚡ Speed Hack GUI
+local gui = Instance.new("ScreenGui", LP:WaitForChild("PlayerGui"))
+gui.Name = "ArdaSpeedAntiBan"
+
+local f = Instance.new("Frame", gui)
+f.Size = UDim2.new(0, 240, 0, 160)
+f.Position = UDim2.new(0.5, -120, 0.5, -80)
+f.BackgroundColor3 = Color3.fromRGB(30,30,30)
+f.Active = true f.Draggable = true
+Instance.new("UICorner", f).CornerRadius = UDim.new(0, 10)
+
+local title = Instance.new("TextLabel", f)
 title.Size = UDim2.new(1, 0, 0, 30)
-title.Text = "ESP Menü"
-title.TextColor3 = Color3.new(1, 1, 1)
 title.BackgroundTransparency = 1
+title.Text = "Speed Hack + Anti-Ban"
+title.TextColor3 = Color3.new(1,1,1)
 title.Font = Enum.Font.GothamBold
-title.TextSize = 18
+title.TextSize = 16
 
-local toggleButton = Instance.new("TextButton", frame)
-toggleButton.Size = UDim2.new(1, -20, 0, 30)
-toggleButton.Position = UDim2.new(0, 10, 0, 40)
-toggleButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-toggleButton.TextColor3 = Color3.new(1, 1, 1)
-toggleButton.Text = "ESP: ON"
-toggleButton.Font = Enum.Font.GothamBold
-toggleButton.TextSize = 16
-toggleButton.BorderSizePixel = 0
-toggleButton.MouseButton1Click:Connect(function()
-	espEnabled = not espEnabled
-	toggleButton.Text = espEnabled and "ESP: ON" or "ESP: OFF"
-	for _, tag in pairs(espTags) do
-		tag.Enabled = espEnabled
-	end
+local slider = Instance.new("TextBox", f)
+slider.Size = UDim2.new(0.8, 0, 0, 30)
+slider.Position = UDim2.new(0.1, 0, 0.4, 0)
+slider.PlaceholderText = "Hız gir (örn: 100)"
+slider.TextColor3 = Color3.new(1,1,1)
+slider.BackgroundColor3 = Color3.fromRGB(50,50,50)
+slider.Font = Enum.Font.Gotham
+slider.TextSize = 14
+Instance.new("UICorner", slider).CornerRadius = UDim.new(0, 8)
+
+local btn = Instance.new("TextButton", f)
+btn.Size = UDim2.new(0.8, 0, 0, 30)
+btn.Position = UDim2.new(0.1, 0, 0.7, 0)
+btn.Text = "Uygula"
+btn.BackgroundColor3 = Color3.fromRGB(60,200,100)
+btn.TextColor3 = Color3.new(1,1,1)
+btn.Font = Enum.Font.Gotham
+btn.TextSize = 14
+Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+
+btn.MouseButton1Click:Connect(function()
+    local speed = tonumber(slider.Text)
+    if speed and Humanoid then
+        Humanoid.WalkSpeed = speed
+        btn.Text = "✅ " .. speed .. " aktif"
+        wait(2)
+        btn.Text = "Uygula"
+    end
 end)
 
-local closeButton = Instance.new("TextButton", frame)
-closeButton.Size = UDim2.new(1, -20, 0, 30)
-closeButton.Position = UDim2.new(0, 10, 0, 80)
-closeButton.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
-closeButton.TextColor3 = Color3.new(1, 1, 1)
-closeButton.Text = "Scripti Kapat"
-closeButton.Font = Enum.Font.GothamBold
-closeButton.TextSize = 16
-closeButton.BorderSizePixel = 0
-closeButton.MouseButton1Click:Connect(function()
-	guiEnabled = false
-	screenGui:Destroy()
-	for _, tag in pairs(espTags) do
-		tag:Destroy()
-	end
-end)
-
--- ESP GUI Oluştur
-local function createESP(player)
-	if espTags[player] then return end
-
-	local function tryCreate()
-		if not player.Character or not player.Character:FindFirstChild("Head") then return end
-
-		local billboard = Instance.new("BillboardGui")
-		billboard.Name = "ESPTag"
-		billboard.Adornee = player.Character.Head
-		billboard.Size = UDim2.new(0, 200, 0, 50)
-		billboard.StudsOffset = Vector3.new(0, 2, 0)
-		billboard.AlwaysOnTop = true
-		billboard.Enabled = espEnabled
-		billboard.Parent = player.Character.Head
-
-		local nameLabel = Instance.new("TextLabel", billboard)
-		nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
-		nameLabel.BackgroundTransparency = 1
-		nameLabel.TextColor3 = Color3.new(1, 1, 1)
-		nameLabel.TextStrokeTransparency = 0
-		nameLabel.Font = Enum.Font.GothamBold
-		nameLabel.TextSize = 16
-		nameLabel.Text = player.Name
-
-		local wantedLabel = Instance.new("TextLabel", billboard)
-		wantedLabel.Size = UDim2.new(1, 0, 0.5, 0)
-		wantedLabel.Position = UDim2.new(0, 0, 0.5, 0)
-		wantedLabel.BackgroundTransparency = 1
-		wantedLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
-		wantedLabel.TextStrokeTransparency = 0
-		wantedLabel.Font = Enum.Font.GothamBold
-		wantedLabel.TextSize = 16
-		wantedLabel.Text = ""
-
-		-- WANTED kontrolü
-		local wd = player:FindFirstChild("PlayerScripts") and player.PlayerScripts:FindFirstChild("Code") and player.PlayerScripts.Code:FindFirstChild("producer") and player.PlayerScripts.Code.producer:FindFirstChild("wantedData")
-		if wd and tostring(wd.Value) == "true" or tostring(wd.Value) == "1" then
-			wantedLabel.Text = "WANTED"
-		end
-
-		espTags[player] = billboard
-	end
-
-	-- Karakter hazır değilse bekle
-	if not player.Character or not player.Character:FindFirstChild("Head") then
-		player.CharacterAdded:Connect(function()
-			repeat wait() until player.Character and player.Character:FindFirstChild("Head")
-			tryCreate()
-		end)
-	else
-		tryCreate()
-	end
-end
-
--- Oyunculara ESP ekle
-for _, player in pairs(Players:GetPlayers()) do
-	if player ~= LocalPlayer then
-		createESP(player)
-	end
-end
-
-Players.PlayerAdded:Connect(function(player)
-	if player ~= LocalPlayer then
-		player.CharacterAdded:Connect(function()
-			wait(1)
-			createESP(player)
-		end)
-	end
+local x = Instance.new("TextButton", f)
+x.Size = UDim2.new(0, 24, 0, 24)
+x.Position = UDim2.new(1, -28, 0, 4)
+x.Text = "✕"
+x.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+x.TextColor3 = Color3.new(1,1,1)
+x.Font = Enum.Font.GothamBold
+x.TextSize = 14
+Instance.new("UICorner", x).CornerRadius = UDim.new(0, 6)
+x.MouseButton1Click:Connect(function()
+    gui:Destroy()
 end)
