@@ -1,146 +1,134 @@
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
 
-local localPlayer = Players.LocalPlayer
-local ESPObjects = {}
-local connections = {}
+local espEnabled = true
+local guiEnabled = true
+local espTags = {}
 
--- 🔴 Arananlar listesi
-local wantedList = {
-    "Player1",
-    "Player2",
-    "Player3"
-}
+-- GUI Menü
+local screenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+screenGui.Name = "ESPMenu"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
 
--- GUI Oluştur
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-ScreenGui.Name = "MainGui"
+local frame = Instance.new("Frame", screenGui)
+frame.Size = UDim2.new(0, 180, 0, 120)
+frame.Position = UDim2.new(0, 20, 0, 20)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.BackgroundTransparency = 0.2
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
 
-local Frame = Instance.new("Frame", ScreenGui)
-Frame.Size = UDim2.new(0, 250, 0, 300)
-Frame.Position = UDim2.new(0, 50, 0, 100)
-Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Frame.BorderSizePixel = 0
-Frame.BackgroundTransparency = 0.2
-Frame.Active = true
-Frame.Draggable = true
-Frame.Name = "MainFrame"
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Text = "ESP Menü"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
 
--- Kapatma Tuşu
-local CloseBtn = Instance.new("TextButton", Frame)
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -35, 0, 5)
-CloseBtn.Text = "X"
-CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-CloseBtn.TextColor3 = Color3.new(1,1,1)
-CloseBtn.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
+local toggleButton = Instance.new("TextButton", frame)
+toggleButton.Size = UDim2.new(1, -20, 0, 30)
+toggleButton.Position = UDim2.new(0, 10, 0, 40)
+toggleButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+toggleButton.TextColor3 = Color3.new(1, 1, 1)
+toggleButton.Text = "ESP: ON"
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.TextSize = 16
+toggleButton.BorderSizePixel = 0
+toggleButton.MouseButton1Click:Connect(function()
+	espEnabled = not espEnabled
+	toggleButton.Text = espEnabled and "ESP: ON" or "ESP: OFF"
+	for _, tag in pairs(espTags) do
+		tag.Enabled = espEnabled
+	end
 end)
 
--- Toggle Kutucuk
-local ESPToggle = Instance.new("TextButton", Frame)
-ESPToggle.Size = UDim2.new(0, 200, 0, 40)
-ESPToggle.Position = UDim2.new(0, 25, 0, 50)
-ESPToggle.Text = "ESP: OFF"
-ESPToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-ESPToggle.TextColor3 = Color3.new(1,1,1)
-
-local espEnabled = false
-ESPToggle.MouseButton1Click:Connect(function()
-    espEnabled = not espEnabled
-    ESPToggle.Text = "ESP: " .. (espEnabled and "ON" or "OFF")
+local closeButton = Instance.new("TextButton", frame)
+closeButton.Size = UDim2.new(1, -20, 0, 30)
+closeButton.Position = UDim2.new(0, 10, 0, 80)
+closeButton.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+closeButton.TextColor3 = Color3.new(1, 1, 1)
+closeButton.Text = "Scripti Kapat"
+closeButton.Font = Enum.Font.GothamBold
+closeButton.TextSize = 16
+closeButton.BorderSizePixel = 0
+closeButton.MouseButton1Click:Connect(function()
+	guiEnabled = false
+	screenGui:Destroy()
+	for _, tag in pairs(espTags) do
+		tag:Destroy()
+	end
 end)
 
--- Slider (örnek: daire boyutu)
-local Slider = Instance.new("TextButton", Frame)
-Slider.Size = UDim2.new(0, 200, 0, 40)
-Slider.Position = UDim2.new(0, 25, 0, 100)
-Slider.Text = "ESP Size: 5"
-Slider.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-Slider.TextColor3 = Color3.new(1,1,1)
-
-local espSize = 5
-Slider.MouseButton1Click:Connect(function()
-    espSize = (espSize % 10) + 1
-    Slider.Text = "ESP Size: " .. espSize
-end)
-
--- ESP Fonksiyonu
+-- ESP GUI Oluştur
 local function createESP(player)
-    if player == localPlayer then return end
-    local char = player.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+	if espTags[player] then return end
 
-    local root = char.HumanoidRootPart
-    local billboard = Instance.new("BillboardGui", root)
-    billboard.Size = UDim2.new(0, 100, 0, 40)
-    billboard.Adornee = root
-    billboard.AlwaysOnTop = true
+	local function tryCreate()
+		if not player.Character or not player.Character:FindFirstChild("Head") then return end
 
-    local nameLabel = Instance.new("TextLabel", billboard)
-    nameLabel.Size = UDim2.new(1, 0, 1, 0)
-    nameLabel.BackgroundTransparency = 1
-    nameLabel.TextStrokeTransparency = 0.5
-    nameLabel.Text = player.Name
+		local billboard = Instance.new("BillboardGui")
+		billboard.Name = "ESPTag"
+		billboard.Adornee = player.Character.Head
+		billboard.Size = UDim2.new(0, 200, 0, 50)
+		billboard.StudsOffset = Vector3.new(0, 2, 0)
+		billboard.AlwaysOnTop = true
+		billboard.Enabled = espEnabled
+		billboard.Parent = player.Character.Head
 
-    -- 🔴 Arananlar kırmızı renkte
-    if table.find(wantedList, player.Name) then
-        nameLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
-    else
-        nameLabel.TextColor3 = Color3.new(1, 1, 1)
-    end
+		local nameLabel = Instance.new("TextLabel", billboard)
+		nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
+		nameLabel.BackgroundTransparency = 1
+		nameLabel.TextColor3 = Color3.new(1, 1, 1)
+		nameLabel.TextStrokeTransparency = 0
+		nameLabel.Font = Enum.Font.GothamBold
+		nameLabel.TextSize = 16
+		nameLabel.Text = player.Name
 
-    local circle = Drawing.new("Circle")
-    circle.Radius = espSize
-    circle.Thickness = 2
-    circle.Color = Color3.fromRGB(0, 255, 0)
-    circle.Filled = false
+		local wantedLabel = Instance.new("TextLabel", billboard)
+		wantedLabel.Size = UDim2.new(1, 0, 0.5, 0)
+		wantedLabel.Position = UDim2.new(0, 0, 0.5, 0)
+		wantedLabel.BackgroundTransparency = 1
+		wantedLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+		wantedLabel.TextStrokeTransparency = 0
+		wantedLabel.Font = Enum.Font.GothamBold
+		wantedLabel.TextSize = 16
+		wantedLabel.Text = ""
 
-    ESPObjects[player] = {circle = circle, gui = billboard}
+		-- WANTED kontrolü
+		local wd = player:FindFirstChild("PlayerScripts") and player.PlayerScripts:FindFirstChild("Code") and player.PlayerScripts.Code:FindFirstChild("producer") and player.PlayerScripts.Code.producer:FindFirstChild("wantedData")
+		if wd and tostring(wd.Value) == "true" or tostring(wd.Value) == "1" then
+			wantedLabel.Text = "WANTED"
+		end
+
+		espTags[player] = billboard
+	end
+
+	-- Karakter hazır değilse bekle
+	if not player.Character or not player.Character:FindFirstChild("Head") then
+		player.CharacterAdded:Connect(function()
+			repeat wait() until player.Character and player.Character:FindFirstChild("Head")
+			tryCreate()
+		end)
+	else
+		tryCreate()
+	end
 end
 
--- ESP Güncelleme
-table.insert(connections, RunService.RenderStepped:Connect(function()
-    if not espEnabled then
-        for _, obj in pairs(ESPObjects) do
-            obj.circle.Visible = false
-        end
-        return
-    end
+-- Oyunculara ESP ekle
+for _, player in pairs(Players:GetPlayers()) do
+	if player ~= LocalPlayer then
+		createESP(player)
+	end
+end
 
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= localPlayer then
-            if not ESPObjects[player] then
-                createESP(player)
-            end
-            local char = player.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(char.HumanoidRootPart.Position)
-                local obj = ESPObjects[player]
-                obj.circle.Position = Vector2.new(pos.X, pos.Y)
-                obj.circle.Visible = onScreen
-                obj.circle.Radius = espSize
-            end
-        end
-    end
-end))
-
--- K Tuşuyla Tam Kapatma
-UserInputService.InputBegan:Connect(function(input, gp)
-    if input.KeyCode == Enum.KeyCode.K and not gp then
-        if ScreenGui then ScreenGui:Destroy() end
-        for _, obj in pairs(ESPObjects) do
-            if obj.circle then obj.circle:Remove() end
-            if obj.gui then obj.gui:Destroy() end
-        end
-        ESPObjects = {}
-        for _, conn in ipairs(connections) do
-            if typeof(conn) == "RBXScriptConnection" then
-                conn:Disconnect()
-            end
-        end
-        connections = {}
-        script:Destroy()
-    end
+Players.PlayerAdded:Connect(function(player)
+	if player ~= LocalPlayer then
+		player.CharacterAdded:Connect(function()
+			wait(1)
+			createESP(player)
+		end)
+	end
 end)
