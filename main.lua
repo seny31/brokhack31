@@ -1,91 +1,148 @@
-local Players = game:GetService("Players")
-local LP = Players.LocalPlayer
-local Humanoid = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+-- Slider destekli FLY sistemi (Delta uyumlu, mobil optimize)
 
--- 🛡️ Anti-Ban Başlat
-local mt = getrawmetatable(game)
-setreadonly(mt, false)
-local old = mt.__namecall
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+local RunService = game:GetService("RunService")
 
-mt.__namecall = newcclosure(function(self, ...)
-    local args = {...}
-    local method = getnamecallmethod()
+local flying = false
+local flySpeed = 100
+local bodyGyro, bodyVelocity
+local flyLoop
 
-    if method == "FireServer" or method == "InvokeServer" then
-        local name = tostring(self)
-        if string.find(name:lower(), "ban") or string.find(name:lower(), "kick") or string.find(name:lower(), "log") or string.find(name:lower(), "report") then
-            warn("⛔ Anti-Ban engelledi: " .. name)
-            return nil
-        end
-    end
+-- FLY başlat
+local function startFly()
+    if flying then return end
+    flying = true
 
-    return old(self, ...)
-end)
+    bodyGyro = Instance.new("BodyGyro", hrp)
+    bodyGyro.P = 9e4
+    bodyGyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+    bodyGyro.cframe = hrp.CFrame
 
-LP.Kick = function() return nil end
-hookfunction(LP.Kick, function() return nil end)
-pcall(function()
-    game:GetService("CoreGui"):WaitForChild("RobloxPromptGui"):Destroy()
-end)
+    bodyVelocity = Instance.new("BodyVelocity", hrp)
+    bodyVelocity.Velocity = Vector3.zero
+    bodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
 
--- ⚡ Speed Hack GUI
-local gui = Instance.new("ScreenGui", LP:WaitForChild("PlayerGui"))
-gui.Name = "ArdaSpeedAntiBan"
+    flyLoop = RunService.RenderStepped:Connect(function()
+        if not flying then return end
+        local moveVec = Vector3.zero
+        local mouse = player:GetMouse()
+        if mouse.W then moveVec += workspace.CurrentCamera.CFrame.LookVector end
+        if mouse.S then moveVec -= workspace.CurrentCamera.CFrame.LookVector end
+        if mouse.A then moveVec -= workspace.CurrentCamera.CFrame.RightVector end
+        if mouse.D then moveVec += workspace.CurrentCamera.CFrame.RightVector end
+        bodyVelocity.Velocity = moveVec.Unit * flySpeed
+        bodyGyro.CFrame = workspace.CurrentCamera.CFrame
+    end)
+end
 
-local f = Instance.new("Frame", gui)
-f.Size = UDim2.new(0, 240, 0, 160)
-f.Position = UDim2.new(0.5, -120, 0.5, -80)
-f.BackgroundColor3 = Color3.fromRGB(30,30,30)
-f.Active = true f.Draggable = true
-Instance.new("UICorner", f).CornerRadius = UDim.new(0, 10)
+-- FLY durdur
+local function stopFly()
+    flying = false
+    if bodyGyro then bodyGyro:Destroy() end
+    if bodyVelocity then bodyVelocity:Destroy() end
+    if flyLoop then flyLoop:Disconnect() flyLoop = nil end
+end
 
-local title = Instance.new("TextLabel", f)
+-- GUI Başlat
+local gui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 260, 0, 220)
+frame.Position = UDim2.new(0.5, -130, 0.8, -110)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
+
+local title = Instance.new("TextLabel", frame)
 title.Size = UDim2.new(1, 0, 0, 30)
-title.BackgroundTransparency = 1
-title.Text = "Speed Hack + Anti-Ban"
-title.TextColor3 = Color3.new(1,1,1)
+title.Text = "🛫 Brookhaven FLY Menü"
+title.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.Font = Enum.Font.GothamBold
-title.TextSize = 16
+title.TextSize = 18
 
-local slider = Instance.new("TextBox", f)
-slider.Size = UDim2.new(0.8, 0, 0, 30)
-slider.Position = UDim2.new(0.1, 0, 0.4, 0)
-slider.PlaceholderText = "Hız gir (örn: 100)"
-slider.TextColor3 = Color3.new(1,1,1)
-slider.BackgroundColor3 = Color3.fromRGB(50,50,50)
-slider.Font = Enum.Font.Gotham
-slider.TextSize = 14
-Instance.new("UICorner", slider).CornerRadius = UDim.new(0, 8)
+local flyBtn = Instance.new("TextButton", frame)
+flyBtn.Size = UDim2.new(0.9, 0, 0, 40)
+flyBtn.Position = UDim2.new(0.05, 0, 0, 40)
+flyBtn.Text = "✅ FLY Aç"
+flyBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+flyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+flyBtn.Font = Enum.Font.GothamBold
+flyBtn.TextSize = 16
+Instance.new("UICorner", flyBtn).CornerRadius = UDim.new(0, 6)
 
-local btn = Instance.new("TextButton", f)
-btn.Size = UDim2.new(0.8, 0, 0, 30)
-btn.Position = UDim2.new(0.1, 0, 0.7, 0)
-btn.Text = "Uygula"
-btn.BackgroundColor3 = Color3.fromRGB(60,200,100)
-btn.TextColor3 = Color3.new(1,1,1)
-btn.Font = Enum.Font.Gotham
-btn.TextSize = 14
-Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+-- 🔘 Slider barı
+local sliderLabel = Instance.new("TextLabel", frame)
+sliderLabel.Size = UDim2.new(0.9, 0, 0, 20)
+sliderLabel.Position = UDim2.new(0.05, 0, 0, 90)
+sliderLabel.Text = ⚙️ Hız: " .. tostring(flySpeed)
+sliderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+sliderLabel.BackgroundTransparency = 1
+sliderLabel.Font = Enum.Font.Gotham
+sliderLabel.TextSize = 16
 
-btn.MouseButton1Click:Connect(function()
-    local speed = tonumber(slider.Text)
-    if speed and Humanoid then
-        Humanoid.WalkSpeed = speed
-        btn.Text = "✅ " .. speed .. " aktif"
-        wait(2)
-        btn.Text = "Uygula"
+local sliderBar = Instance.new("Frame", frame)
+sliderBar.Size = UDim2.new(0.9, 0, 0, 6)
+sliderBar.Position = UDim2.new(0.05, 0, 0, 115)
+sliderBar.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+Instance.new("UICorner", sliderBar).CornerRadius = UDim.new(0, 3)
+
+local sliderKnob = Instance.new("Frame", sliderBar)
+sliderKnob.Size = UDim2.new(0, 12, 0, 12)
+sliderKnob.Position = UDim2.new(flySpeed / 200, -6, 0.5, -6)
+sliderKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", sliderKnob).CornerRadius = UDim.new(0, 6)
+
+-- 🖱️ Slider kontrolü
+local dragging = false
+sliderKnob.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
     end
 end)
 
-local x = Instance.new("TextButton", f)
-x.Size = UDim2.new(0, 24, 0, 24)
-x.Position = UDim2.new(1, -28, 0, 4)
-x.Text = "✕"
-x.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
-x.TextColor3 = Color3.new(1,1,1)
-x.Font = Enum.Font.GothamBold
-x.TextSize = 14
-Instance.new("UICorner", x).CornerRadius = UDim.new(0, 6)
-x.MouseButton1Click:Connect(function()
+game:GetService("UserInputService").InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local relX = math.clamp(input.Position.X - sliderBar.AbsolutePosition.X, 0, sliderBar.AbsoluteSize.X)
+        local percent = relX / sliderBar.AbsoluteSize.X
+        flySpeed = math.floor(percent * 200)
+        sliderKnob.Position = UDim2.new(percent, -6, 0.5, -6)
+        sliderLabel.Text = "⚙️ Hız: " .. tostring(flySpeed)
+    end
+end)
+
+-- ❌ Kapat butonu
+local closeBtn = Instance.new("TextButton", frame)
+closeBtn.Size = UDim2.new(0.9, 0, 0, 30)
+closeBtn.Position = UDim2.new(0.05, 0, 0, 160)
+closeBtn.Text = "❌ Menüyü Kapat"
+closeBtn.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 16
+Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
+
+-- Buton işlevleri
+flyBtn.MouseButton1Click:Connect(function()
+    if flying then
+        stopFly()
+        flyBtn.Text = "✅ FLY Aç"
+    else
+        startFly()
+        flyBtn.Text = "🚫 FLY Kapat"
+    end
+end)
+
+closeBtn.MouseButton1Click:Connect(function()
     gui:Destroy()
+    stopFly()
 end)
